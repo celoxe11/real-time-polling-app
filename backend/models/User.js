@@ -6,6 +6,7 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+      index: true, // Index untuk query lebih cepat
     },
     name: {
       type: String,
@@ -15,6 +16,15 @@ const UserSchema = new mongoose.Schema(
       type: String,
       required: true,
       unique: true,
+    },
+    profilePicture: {
+      type: String,
+      default: null,
+    },
+    role: {
+      type: String,
+      enum: ['user', 'admin'],
+      default: 'user',
     },
   },
   { timestamps: true }

@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from '../config/firebase';
-import { setUser } from '../services/authSlice';
+import { setUser } from '../store/slices/authSlice';
 
 // Custom hook untuk listen Firebase auth state changes
 export const useAuthListener = () => {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { registerWithEmail, clearError } from '../services/authSlice';
+import { registerWithEmail, clearError } from '../store/slices/authSlice';
 
 const RegisterPage = () => {
   const [email, setEmail] = useState('');

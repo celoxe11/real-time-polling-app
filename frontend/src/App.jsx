@@ -7,7 +7,7 @@ import {
   Navigate,
 } from "react-router-dom";
 import { useAuthListener } from "./hooks/useAuthListener";
-import { logoutUser } from "./services/authSlice";
+import { logoutUser } from "./store/slices/authSlice";
 import RegisterPage from "./pages/RegisterPage";
 import LoginPage from "./pages/LoginPage";
 import ProtectedRoute from "./components/ProtectedRoute";

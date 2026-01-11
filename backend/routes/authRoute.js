@@ -1,17 +1,15 @@
 const express = require("express");
 const router = express.Router();
-const User = require("../models/User");
+const { verifyFirebaseToken } = require("../middleware/authMiddleware");
 const {
-  login,
-  register,
-  logout,
-  gooleSignIn,
+  verifyAndSaveUser,
+  getCurrentUser,
+  deleteUser,
 } = require("../controllers/authController");
 
-// Route untuk login
-router.post("/login", login);
-router.post("/register", register);
-router.get("/logout", logout);
-router.post("/google-signin", gooleSignIn);
+// Protected routes - memerlukan authentication
+router.post("/verify", verifyFirebaseToken, verifyAndSaveUser);
+router.get("/me", verifyFirebaseToken, getCurrentUser);
+router.delete("/delete", verifyFirebaseToken, deleteUser);
 
 module.exports = router;

@@ -1,19 +1,24 @@
-import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { 
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import {
   signInWithPopup,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  updateProfile
-} from 'firebase/auth';
-import { auth, googleProvider } from '../config/firebase';
+  updateProfile,
+} from "firebase/auth";
+import { auth, googleProvider } from "../../config/firebase";
+import { authService } from '../../services/authService';
 
 // Async Thunks
 export const loginWithGoogle = createAsyncThunk(
-  'auth/loginWithGoogle',
+  "auth/loginWithGoogle",
   async (_, { rejectWithValue }) => {
     try {
       const result = await signInWithPopup(auth, googleProvider);
+
+      // simpan user ke mongodb lewat backend
+      await authService.verifyUser();
+
       return {
         uid: result.user.uid,
         email: result.user.email,
@@ -27,10 +32,14 @@ export const loginWithGoogle = createAsyncThunk(
 );
 
 export const loginWithEmail = createAsyncThunk(
-  'auth/loginWithEmail',
+  "auth/loginWithEmail",
   async ({ email, password }, { rejectWithValue }) => {
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
+
+      // Simpan user ke MongoDB backend
+      await authService.verifyUser();
+
       return {
         uid: result.user.uid,
         email: result.user.email,
@@ -44,16 +53,23 @@ export const loginWithEmail = createAsyncThunk(
 );
 
 export const registerWithEmail = createAsyncThunk(
-  'auth/registerWithEmail',
+  "auth/registerWithEmail",
   async ({ email, password, displayName }, { rejectWithValue }) => {
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
-      
+      const result = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+
       // Update display name
       if (displayName) {
         await updateProfile(result.user, { displayName });
       }
-      
+
+      // Simpan user ke MongoDB backend
+      await authService.verifyUser();
+
       return {
         uid: result.user.uid,
         email: result.user.email,
@@ -67,7 +83,7 @@ export const registerWithEmail = createAsyncThunk(
 );
 
 export const logoutUser = createAsyncThunk(
-  'auth/logout',
+  "auth/logout",
   async (_, { rejectWithValue }) => {
     try {
       await signOut(auth);
@@ -88,7 +104,7 @@ const initialState = {
 
 // Slice
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     setUser: (state, action) => {

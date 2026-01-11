@@ -5,7 +5,7 @@ import {
   loginWithGoogle, 
   loginWithEmail,
   clearError 
-} from '../services/authSlice';
+} from '../store/slices/authSlice';
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
