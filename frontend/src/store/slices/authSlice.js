@@ -7,7 +7,7 @@ import {
   updateProfile,
 } from "firebase/auth";
 import { auth, googleProvider } from "../../config/firebase";
-import { authService } from '../../services/authService';
+import { authService } from "../../services/authService";
 
 // Async Thunks
 export const loginWithGoogle = createAsyncThunk(
@@ -16,16 +16,25 @@ export const loginWithGoogle = createAsyncThunk(
     try {
       const result = await signInWithPopup(auth, googleProvider);
 
-      // simpan user ke mongodb lewat backend
-      await authService.verifyUser();
+      // simpan user ke mongodb lewat backend dan dapatkan role
+      const backendUser = await authService.verifyUser();
 
       return {
         uid: result.user.uid,
         email: result.user.email,
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
+        role: backendUser.user.role, // Get role from backend
       };
     } catch (error) {
+      console.error("Login error:", error);
+      // Handle popup closed by user - don't show error
+      if (
+        error.code === "auth/popup-closed-by-user" ||
+        error.code === "auth/cancelled-popup-request"
+      ) {
+        return rejectWithValue(null);
+      }
       return rejectWithValue(error.message);
     }
   }
@@ -37,14 +46,15 @@ export const loginWithEmail = createAsyncThunk(
     try {
       const result = await signInWithEmailAndPassword(auth, email, password);
 
-      // Simpan user ke MongoDB backend
-      await authService.verifyUser();
+      // Simpan user ke MongoDB backend dan dapatkan role
+      const backendUser = await authService.verifyUser();
 
       return {
         uid: result.user.uid,
         email: result.user.email,
         displayName: result.user.displayName,
         photoURL: result.user.photoURL,
+        role: backendUser.user.role,
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -67,14 +77,15 @@ export const registerWithEmail = createAsyncThunk(
         await updateProfile(result.user, { displayName });
       }
 
-      // Simpan user ke MongoDB backend
-      await authService.verifyUser();
+      // Simpan user ke MongoDB backend dan dapatkan role
+      const backendUser = await authService.verifyUser();
 
       return {
         uid: result.user.uid,
         email: result.user.email,
         displayName: displayName || result.user.displayName,
         photoURL: result.user.photoURL,
+        role: backendUser.user.role,
       };
     } catch (error) {
       return rejectWithValue(error.message);
@@ -131,7 +142,8 @@ const authSlice = createSlice({
       })
       .addCase(loginWithGoogle.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        // Only set error if it's not null (popup was closed)
+        state.error = action.payload || null;
       });
 
     // Login with Email

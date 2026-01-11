@@ -1,5 +1,5 @@
-const { auth } = require('../config/firebase');
-const User = require('../models/User');
+const { auth } = require("../config/firebase");
+const User = require("../models/User");
 
 // Verify dan simpan user ke database
 const verifyAndSaveUser = async (req, res) => {
@@ -27,7 +27,7 @@ const verifyAndSaveUser = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'User authenticated',
+      message: "User authenticated",
       user: {
         id: user._id,
         firebaseUid: user.firebaseUid,
@@ -37,10 +37,10 @@ const verifyAndSaveUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error saving user:', error);
+    console.error("Error saving user:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to save user',
+      message: "Failed to save user",
       error: error.message,
     });
   }
@@ -50,11 +50,11 @@ const verifyAndSaveUser = async (req, res) => {
 const getCurrentUser = async (req, res) => {
   try {
     const user = await User.findOne({ firebaseUid: req.user.uid });
-    
+
     if (!user) {
       return res.status(404).json({
         success: false,
-        message: 'User not found',
+        message: "User not found",
       });
     }
 
@@ -69,10 +69,10 @@ const getCurrentUser = async (req, res) => {
       },
     });
   } catch (error) {
-    console.error('Error getting user:', error);
+    console.error("Error getting user:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to get user',
+      message: "Failed to get user",
       error: error.message,
     });
   }
@@ -91,13 +91,13 @@ const deleteUser = async (req, res) => {
 
     res.status(200).json({
       success: true,
-      message: 'User deleted successfully',
+      message: "User deleted successfully",
     });
   } catch (error) {
-    console.error('Error deleting user:', error);
+    console.error("Error deleting user:", error);
     res.status(500).json({
       success: false,
-      message: 'Failed to delete user',
+      message: "Failed to delete user",
       error: error.message,
     });
   }
