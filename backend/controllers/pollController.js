@@ -147,13 +147,171 @@ const votePoll = async (req, res) => {
   }
 };
 
-const getTrendingPolls = async (req, res) => {};
+const getTrendingPolls = async (req, res) => {
+  // Polls yang sedang "hot" - banyak aktivitas dalam waktu dekat
+  try {
+    const limit = parseInt(req.query.limit) || 10;
 
-const getRecentPolls = async (req, res) => {};
+    // Calculate trending score based on:
+    // - Recent votes (last 24-48 hours)
+    // - Vote velocity (votes per hour)
+    // - Recency (newer polls get boost)
 
-const getPopularPolls = async (req, res) => {};
+    /**
+     * Poll A: 100 votes in 10 hours = 10 votes/hour ⭐ Most trending
+     * Poll B: 50 votes in 2 hours = 25 votes/hour ⭐⭐ SUPER trending!
+     * Poll C: 200 votes in 48 hours = 4.2 votes/hour ⭐⭐⭐ Trending
+     */
 
-const searchPolls = async (req, res) => {};
+    const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+    const polls = await Poll.aggregate([
+      {
+        $match: {
+          isPublic: true,
+          status: "active", // Only active polls
+          createdAt: { $gte: oneDayAgo }, // Created in last 24h
+        },
+      },
+      {
+        $addFields: {
+          totalVotes: {
+            $sum: "$options.votes",
+          },
+          // Calculate hours since creation
+          hoursOld: {
+            $divide: [
+              { $subtract: [new Date(), "$createdAt"] },
+              1000 * 60 * 60,
+            ],
+          },
+        },
+      },
+      {
+        $addFields: {
+          // Trending score = votes per hour (Total Votes / Hours Since Creation)
+          trendingScore: {
+            $cond: {
+              if: { $gt: ["$hoursOld", 0] },
+              then: { $divide: ["$totalVotes", "$hoursOld"] },
+              else: 0,
+            },
+          },
+        },
+      },
+      {
+        $sort: { trendingScore: -1 },
+      },
+      {
+        $limit: limit,
+      },
+    ]);
+
+    return res.status(200).json(polls);
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const getRecentPolls = async (req, res) => {
+  // Newest polls, sorted by creation date
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const polls = await Poll.find({
+      isPublic: true,
+      status: "active",
+    })
+      .sort({ createdAt: -1 }) // Newest first
+      .limit(limit)
+      .populate("createdBy", "name photoURL") // Include creator info
+      .lean();
+
+    // Add total votes to each poll
+    const pollsWithVotes = polls.map((poll) => ({
+      ...poll,
+      totalVotes: poll.options.reduce((sum, opt) => sum + opt.votes, 0),
+    }));
+
+    return res.status(200).json(pollsWithVotes);
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const getPopularPolls = async (req, res) => {
+  // Polls with most total votes (all-time)
+  try {
+    const limit = parseInt(req.query.limit) || 10;
+
+    const polls = await Poll.aggregate([
+      {
+        $match: {
+          isPublic: true,
+          // Include both active and closed polls
+        },
+      },
+      {
+        $addFields: {
+          totalVotes: {
+            $sum: "$options.votes",
+          },
+        },
+      },
+      {
+        $sort: { totalVotes: -1 }, // Most votes first
+      },
+      {
+        $limit: limit,
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "creator",
+        },
+      },
+      {
+        $unwind: {
+          path: "$creator",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $project: {
+          title: 1,
+          description: 1,
+          category: 1,
+          options: 1,
+          totalVotes: 1,
+          status: 1,
+          createdAt: 1,
+          "creator.name": 1,
+          "creator.photoURL": 1,
+        },
+      },
+    ]);
+
+    return res.status(200).json(polls);
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
+const searchPolls = async (req, res) => {
+  try {
+    const { query } = req.query;
+    const polls = await Poll.find({ title: { $regex: query, $options: "i" } });
+    return res.status(200).json(polls);
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
 
 module.exports = {
   getPolls,
