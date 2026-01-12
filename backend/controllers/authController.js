@@ -6,6 +6,8 @@ const verifyAndSaveUser = async (req, res) => {
   try {
     const { uid, email, name, picture } = req.user;
 
+    console.log(req.user);
+
     // Cek apakah user sudah ada di database
     let user = await User.findOne({ firebaseUid: uid });
 

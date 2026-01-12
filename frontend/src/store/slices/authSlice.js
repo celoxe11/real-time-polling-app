@@ -18,6 +18,7 @@ export const loginWithGoogle = createAsyncThunk(
 
       // simpan user ke mongodb lewat backend dan dapatkan role
       const backendUser = await authService.verifyUser();
+      console.log(backendUser);
 
       return {
         uid: result.user.uid,

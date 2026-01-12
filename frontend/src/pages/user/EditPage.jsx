@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { useForm } from "@mantine/form";
 import {
@@ -17,11 +17,11 @@ import {
   NumberInput,
   Switch,
   Badge,
-  Box,
   ThemeIcon,
   Divider,
-  Alert,
   Transition,
+  Loader,
+  Alert,
 } from "@mantine/core";
 import {
   IconPlus,
@@ -32,6 +32,7 @@ import {
   IconAlertCircle,
   IconCheck,
   IconSparkles,
+  IconArrowLeft,
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import {
@@ -39,15 +40,15 @@ import {
   optionsSchema,
   joiResolver,
 } from "../../utils/validation/pollValidationSchemas";
-import { createPoll } from "../../store/slices/pollSlice";
+import { getPollById, updatePoll } from "../../store/slices/pollSlice";
 
-const CreatePage = () => {
-  const [localLoading, setLocalLoading] = useState(false);
-
+const EditPage = () => {
+  const { id } = useParams();
   const navigate = useNavigate();
-
   const dispatch = useDispatch();
+  const { poll, loading } = useSelector((state) => state.poll);
 
+  const [localLoading, setLocalLoading] = useState(false);
   const [options, setOptions] = useState([
     { id: 1, value: "" },
     { id: 2, value: "" },
@@ -83,6 +84,36 @@ const CreatePage = () => {
     },
     validate: joiResolver(pollSchema),
   });
+
+  // Load poll data
+  useEffect(() => {
+    dispatch(getPollById(id));
+  }, [dispatch, id]);
+
+  // Pre-fill form when poll data is loaded
+  useEffect(() => {
+    if (poll && poll._id === id) {
+      form.setValues({
+        title: poll.title || "",
+        description: poll.description || "",
+        category: poll.category || "",
+        isPublic: poll.isPublic ?? true,
+        hasTimeLimit: poll.hasTimeLimit ?? false,
+        timeLimit: poll.timeLimit || 24,
+        timeLimitUnit: poll.timeLimitUnit || "hours",
+      });
+
+      // Set options
+      if (poll.options && poll.options.length > 0) {
+        setOptions(
+          poll.options.map((opt, index) => ({
+            id: index + 1,
+            value: opt.optionText || "",
+          }))
+        );
+      }
+    }
+  }, [poll, id]);
 
   const handleAddOption = () => {
     if (options.length >= 10) {
@@ -158,19 +189,19 @@ const CreatePage = () => {
         options: formattedOptions,
       };
 
-      console.log("Creating poll:", pollData);
-      const result = await dispatch(createPoll(pollData));
+      console.log("Updating poll:", pollData);
+      const result = await dispatch(updatePoll(id, pollData));
       console.log("Result: ", result);
 
       // Check if the action was rejected
-      if (result.type === "poll/createPoll/rejected") {
-        throw new Error(result.error?.message || "Failed to create poll");
+      if (result.type === "poll/updatePoll/rejected") {
+        throw new Error(result.error?.message || "Failed to update poll");
       }
 
       // Show success notification
       notifications.show({
-        title: "Poll Created! 🎉",
-        message: "Your poll has been created successfully",
+        title: "Poll Updated! ✅",
+        message: "Your poll has been updated successfully",
         color: "green",
         icon: <IconCheck size={16} />,
       });
@@ -178,24 +209,55 @@ const CreatePage = () => {
       // Wait a bit before navigating to show the notification
       setTimeout(() => {
         setLocalLoading(false);
-        navigate("/my-polls");
+        navigate(`/my-poll/${id}`);
       }, 2000);
     } catch (error) {
       setLocalLoading(false);
       notifications.show({
         title: "Error",
-        message: error.message || "Failed to create poll",
+        message: error.message || "Failed to update poll",
         color: "red",
         icon: <IconAlertCircle size={16} />,
       });
     }
   });
 
+  if (loading) {
+    return (
+      <Container size="md" py="xl">
+        <Stack align="center" gap="md" py="xl">
+          <Loader size="lg" />
+          <Text c="dimmed">Loading poll data...</Text>
+        </Stack>
+      </Container>
+    );
+  }
+
+  if (!poll || poll._id !== id) {
+    return (
+      <Container size="md" py="xl">
+        <Alert color="red" icon={<IconAlertCircle size={16} />}>
+          Poll not found
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
     <Container size="md" py="xl">
-      {/* Header */}
-      <Box mb="xl">
-        <Group mb="md">
+      {/* Back Button */}
+      <Button
+        variant="subtle"
+        leftSection={<IconArrowLeft size={16} />}
+        onClick={() => navigate(`/my-poll/${id}`)}
+        mb="lg"
+      >
+        Back to Poll Details
+      </Button>
+
+      <Paper shadow="lg" p="xl" radius="lg" withBorder>
+        {/* Header */}
+        <Group gap="sm" mb="xl">
           <ThemeIcon
             size="xl"
             radius="md"
@@ -205,70 +267,61 @@ const CreatePage = () => {
             <IconSparkles size={24} />
           </ThemeIcon>
           <div>
-            <Title order={1}>Create New Poll</Title>
-            <Text c="dimmed" size="sm">
-              Share your question with the community
+            <Title order={2}>Edit Poll</Title>
+            <Text size="sm" c="dimmed">
+              Update your poll details and settings
             </Text>
           </div>
         </Group>
 
-        {/* Quick Tips */}
-        <Alert
-          variant="light"
-          color="blue"
-          icon={<IconAlertCircle size={16} />}
-        >
-          <Text size="sm" fw={500} mb={4}>
-            Tips for creating engaging polls:
-          </Text>
-          <Text size="xs" c="dimmed">
-            • Keep your question clear and concise • Provide balanced options •
-            Choose the right category • Set an appropriate time limit
-          </Text>
-        </Alert>
-      </Box>
+        <Divider mb="xl" />
 
-      {/* Main Form */}
-      <Paper shadow="md" p="xl" radius="lg" withBorder>
+        {/* Form */}
         <form onSubmit={handleSubmit}>
           <Stack gap="lg">
             {/* Poll Title */}
-            <TextInput
-              label="Poll Title"
-              placeholder="What's your question?"
-              size="md"
-              required
-              {...form.getInputProps("title")}
-              leftSection={<IconChartBar size={16} />}
-              description={`${form.values.title.length}/200 characters`}
-              maxLength={200}
-            />
+            <div>
+              <TextInput
+                label="Poll Title"
+                placeholder="What would you like to ask?"
+                size="md"
+                leftSection={<IconChartBar size={18} />}
+                {...form.getInputProps("title")}
+                maxLength={200}
+              />
+              <Group justify="space-between" mt={4}>
+                <Text size="xs" c="dimmed">
+                  Make it clear and engaging
+                </Text>
+                <Text size="xs" c="dimmed">
+                  {form.values.title.length}/200
+                </Text>
+              </Group>
+            </div>
 
             {/* Description */}
             <Textarea
-              label="Description"
-              placeholder="Provide more context about your poll..."
+              label="Description (Optional)"
+              placeholder="Add more context to your poll..."
               size="md"
               minRows={3}
               maxRows={6}
               {...form.getInputProps("description")}
-              description="Help people understand what you're asking"
+              maxLength={1000}
             />
 
             {/* Category */}
             <Select
               label="Category"
               placeholder="Select a category"
-              size="md"
-              required
               data={categories}
+              size="md"
               {...form.getInputProps("category")}
-              searchable
             />
 
-            <Divider label="Poll Options" labelPosition="center" />
+            <Divider />
 
-            {/* Options */}
+            {/* Poll Options */}
             <div>
               <Group justify="space-between" mb="sm">
                 <Text size="sm" fw={500}>
@@ -299,11 +352,6 @@ const CreatePage = () => {
                           }
                           style={{ flex: 1 }}
                           size="md"
-                          leftSection={
-                            <Text size="xs" c="dimmed" fw={700}>
-                              {index + 1}
-                            </Text>
-                          }
                         />
                         <ActionIcon
                           color="red"
@@ -332,10 +380,14 @@ const CreatePage = () => {
               </Button>
             </div>
 
-            <Divider label="Settings" labelPosition="center" />
+            <Divider />
 
             {/* Settings */}
             <Stack gap="md">
+              <Text size="sm" fw={500}>
+                Settings
+              </Text>
+
               {/* Public/Private */}
               <Group justify="space-between">
                 <div>
@@ -402,7 +454,7 @@ const CreatePage = () => {
             <Group justify="flex-end" mt="xl">
               <Button
                 variant="subtle"
-                onClick={() => navigate("/")}
+                onClick={() => navigate(`/my-poll/${id}`)}
                 disabled={localLoading}
               >
                 Cancel
@@ -415,7 +467,7 @@ const CreatePage = () => {
                 gradient={{ from: "blue", to: "cyan" }}
                 variant="gradient"
               >
-                Create Poll
+                Update Poll
               </Button>
             </Group>
           </Stack>
@@ -425,4 +477,4 @@ const CreatePage = () => {
   );
 };
 
-export default CreatePage;
+export default EditPage;

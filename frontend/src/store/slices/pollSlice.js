@@ -32,8 +32,8 @@ export const createPoll = createAsyncThunk(
 
 export const updatePoll = createAsyncThunk(
   "poll/updatePoll",
-  async (pollData) => {
-    const response = await pollService.updatePoll(pollData);
+  async (id, pollData) => {
+    const response = await pollService.updatePoll(id, pollData);
     return response; // pollService already returns response.data
   }
 );

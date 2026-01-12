@@ -13,8 +13,11 @@ const getPolls = async (req, res) => {
 const getMyPolls = async (req, res) => {
   try {
     const polls = await Poll.find({ createdBy: req.user.id });
-    const activePolls = polls.filter((poll) => poll.endTime > Date.now());
-    const closedPolls = polls.filter((poll) => poll.endTime < Date.now());
+
+    // Filter using virtual status field
+    const activePolls = polls.filter((poll) => poll.status === "active");
+    const closedPolls = polls.filter((poll) => poll.status === "closed");
+
     return res.status(200).json({
       myPolls: polls,
       activePolls: activePolls,

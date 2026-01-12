@@ -45,7 +45,7 @@ const MyPollsPage = () => {
   };
 
   const handleViewPoll = (pollId) => {
-    navigate(`/poll/${pollId}`);
+    navigate(`/my-poll/${pollId}`);
   };
 
   const handleEditPoll = (pollId) => {
@@ -66,6 +66,7 @@ const MyPollsPage = () => {
           variant="light"
         >
           {poll.status}
+          {console.log(poll)}
         </Badge>
         <Menu shadow="md" width={200}>
           <Menu.Target>

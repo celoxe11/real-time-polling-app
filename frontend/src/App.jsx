@@ -18,6 +18,8 @@ import MyPollsPage from "./pages/user/MyPollsPage";
 import UserLayout from "./components/UserLayout";
 import CreatePage from "./pages/user/CreatePage";
 import PollDetailPage from "./pages/user/PollDetailPage";
+import MyPollDetailPage from "./pages/user/MyPollDetailPage";
+import EditPage from "./pages/user/EditPage";
 
 function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -83,6 +85,14 @@ function App() {
         {
           path: "poll/:id",
           element: <PollDetailPage />,
+        },
+        {
+          path: "my-poll/:id",
+          element: <MyPollDetailPage />,
+        },
+        {
+          path: "poll/:id/edit",
+          element: <EditPage />,
         },
       ],
     },

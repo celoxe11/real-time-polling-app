@@ -18,16 +18,65 @@ const verifyFirebaseToken = async (req, res, next) => {
 
     // Verifikasi token dengan Firebase Admin
     const decodedToken = await auth.verifyIdToken(idToken);
-    const user = await User.findOne({ firebaseUid: decodedToken.uid });
+
+    // Validate email
+    if (!decodedToken.email || !decodedToken.email.includes("@")) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+      });
+    }
+
+    // Sanitize name input
+    const sanitizeName = (name) => {
+      if (!name) return null;
+      return name.replace(/[<>]/g, "").trim().substring(0, 100);
+    };
+
+    const userName =
+      sanitizeName(decodedToken.name) || decodedToken.email.split("@")[0];
+
+    // Use atomic upsert to prevent race conditions
+    // This ensures only one user is created even with concurrent requests
+    let user = await User.findOneAndUpdate(
+      { firebaseUid: decodedToken.uid },
+      {
+        $setOnInsert: {
+          firebaseUid: decodedToken.uid,
+          email: decodedToken.email,
+          name: userName,
+          photoURL: decodedToken.picture || null,
+          role: "user",
+          createdAt: new Date(),
+        },
+        $set: {
+          lastLogin: new Date(),
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+        runValidators: true,
+      }
+    );
+
+    if (!user) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create or retrieve user account",
+      });
+    }
 
     // Attach user info ke request
     req.user = {
-      id: user.id,
+      id: user._id.toString(),
       uid: decodedToken.uid,
       email: decodedToken.email,
-      name: decodedToken.name,
-      picture: decodedToken.picture,
+      name: user.name,
+      picture: user.photoURL || decodedToken.picture,
       emailVerified: decodedToken.email_verified,
+      role: user.role,
     };
 
     next();
@@ -38,6 +87,13 @@ const verifyFirebaseToken = async (req, res, next) => {
       return res.status(401).json({
         success: false,
         message: "Token expired",
+      });
+    }
+
+    if (error.code === "auth/argument-error") {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid token format",
       });
     }
 
