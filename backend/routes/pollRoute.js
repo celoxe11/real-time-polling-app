@@ -4,6 +4,7 @@ const { verifyFirebaseToken } = require("../middleware/authMiddleware");
 
 const {
   getPolls,
+  getMyPolls,
   createPoll,
   updatePoll,
   deletePoll,
@@ -16,6 +17,7 @@ const {
 } = require("../controllers/pollController");
 
 router.get("/", verifyFirebaseToken, getPolls);
+router.get("/my-polls", verifyFirebaseToken, getMyPolls);
 router.get("/:id", verifyFirebaseToken, getPollById);
 router.post("/", verifyFirebaseToken, createPoll);
 router.put("/:id", verifyFirebaseToken, updatePoll);

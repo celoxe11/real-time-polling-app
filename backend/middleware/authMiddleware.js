@@ -1,4 +1,5 @@
 const { auth } = require("../config/firebase");
+const User = require("../models/User");
 
 // Middleware untuk verifikasi Firebase ID Token
 const verifyFirebaseToken = async (req, res, next) => {
@@ -17,16 +18,18 @@ const verifyFirebaseToken = async (req, res, next) => {
 
     // Verifikasi token dengan Firebase Admin
     const decodedToken = await auth.verifyIdToken(idToken);
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
 
     // Attach user info ke request
     req.user = {
+      id: user.id,
       uid: decodedToken.uid,
       email: decodedToken.email,
       name: decodedToken.name,
       picture: decodedToken.picture,
       emailVerified: decodedToken.email_verified,
     };
-    
+
     next();
   } catch (error) {
     console.error("Token verification error:", error);

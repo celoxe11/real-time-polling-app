@@ -3,6 +3,25 @@ const mongoose = require("mongoose");
 
 const PollSchema = new mongoose.Schema(
   {
+    title: {
+      type: String,
+      required: true,
+    },
+    description: {
+      type: String,
+    },
+    category: {
+      type: String,
+    },
+    isPublic: {
+      type: Boolean,
+    },
+    hasTimeLimit: {
+      type: Boolean,
+    },
+    endTime: {
+      type: Date,
+    },
     roomCode: {
       type: String,
       required: true,
@@ -15,13 +34,11 @@ const PollSchema = new mongoose.Schema(
     },
     question: {
       type: String,
-      required: true,
     },
     options: [
       {
         optionText: {
           type: String,
-          required: true,
         },
         votes: {
           type: Number,

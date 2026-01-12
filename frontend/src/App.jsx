@@ -16,6 +16,8 @@ import DashboardPage from "./pages/admin/DashboardPage";
 import ProfilePage from "./pages/user/ProfilePage";
 import MyPollsPage from "./pages/user/MyPollsPage";
 import UserLayout from "./components/UserLayout";
+import CreatePage from "./pages/user/CreatePage";
+import PollDetailPage from "./pages/user/PollDetailPage";
 
 function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -73,6 +75,14 @@ function App() {
         {
           path: "profile",
           element: <ProfilePage />,
+        },
+        {
+          path: "create-poll",
+          element: <CreatePage />,
+        },
+        {
+          path: "poll/:id",
+          element: <PollDetailPage />,
         },
       ],
     },

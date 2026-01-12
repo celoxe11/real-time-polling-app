@@ -23,6 +23,9 @@ app.use(express.urlencoded({ extended: true }));
 const authRoute = require("./routes/authRoute");
 app.use("/api/auth", authRoute);
 
+const pollRoute = require("./routes/pollRoute");
+app.use("/api/poll", pollRoute);
+
 const initApp = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);

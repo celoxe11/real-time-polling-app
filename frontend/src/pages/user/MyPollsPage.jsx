@@ -24,50 +24,39 @@ import {
   IconUsers,
   IconChartBar,
 } from "@tabler/icons-react";
+import { useDispatch, useSelector } from "react-redux";
+import { getMyPolls } from "../../store/slices/pollSlice";
+import { deletePoll } from "../../store/slices/pollSlice";
+import { useEffect } from "react";
 
 const MyPollsPage = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { myPolls, activePolls, closedPolls } = useSelector(
+    (state) => state.poll
+  );
 
-  // Dummy data - nanti akan diganti dengan data dari API
-  const [myPolls, setMyPolls] = useState([
-    {
-      id: 1,
-      title: "What's your favorite programming language?",
-      description: "Vote for your most preferred programming language",
-      totalVotes: 156,
-      status: "active",
-      createdAt: "2026-01-10",
-    },
-    {
-      id: 2,
-      title: "Best time for team meetings?",
-      description: "Help us decide the best time for weekly team sync",
-      totalVotes: 42,
-      status: "active",
-      createdAt: "2026-01-09",
-    },
-  ]);
+  useEffect(() => {
+    dispatch(getMyPolls());
+  }, [dispatch]);
 
   const handleCreatePoll = () => {
     navigate("/create-poll");
   };
 
   const handleViewPoll = (pollId) => {
-    navigate(`/polls/${pollId}`);
+    navigate(`/poll/${pollId}`);
   };
 
   const handleEditPoll = (pollId) => {
-    navigate(`/polls/${pollId}/edit`);
+    navigate(`/poll/${pollId}/edit`);
   };
 
   const handleDeletePoll = (pollId) => {
     if (window.confirm("Are you sure you want to delete this poll?")) {
-      setMyPolls(myPolls.filter((poll) => poll.id !== pollId));
+      dispatch(deletePoll(pollId));
     }
   };
-
-  const activePolls = myPolls.filter((poll) => poll.status === "active");
-  const closedPolls = myPolls.filter((poll) => poll.status === "closed");
 
   const PollCard = ({ poll }) => (
     <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
