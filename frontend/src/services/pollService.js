@@ -45,4 +45,8 @@ export const pollService = {
     const response = await api.get(`/poll/search?query=${query}`);
     return response.data;
   },
+  getPollByRoomCode: async (roomCode) => {
+    const response = await api.get(`/poll/room/${roomCode}`);
+    return response.data;
+  },
 };

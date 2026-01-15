@@ -20,6 +20,7 @@ import CreatePage from "./pages/user/CreatePage";
 import PollDetailPage from "./pages/user/PollDetailPage";
 import MyPollDetailPage from "./pages/user/MyPollDetailPage";
 import EditPage from "./pages/user/EditPage";
+import EnterCodePage from "./pages/user/EnterCodePage";
 
 function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
@@ -77,6 +78,10 @@ function App() {
         {
           path: "profile",
           element: <ProfilePage />,
+        },
+        {
+          path: "enter-code",
+          element: <EnterCodePage />
         },
         {
           path: "create-poll",

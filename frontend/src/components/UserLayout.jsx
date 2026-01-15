@@ -13,6 +13,7 @@ import {
   rem,
   Image,
   Flex,
+  ThemeIcon,
 } from "@mantine/core";
 import { useDisclosure } from "@mantine/hooks";
 import {
@@ -21,6 +22,7 @@ import {
   IconLogout,
   IconChevronDown,
   IconChartBar,
+  IconSparkles,
 } from "@tabler/icons-react";
 import { logoutUser } from "../store/slices/authSlice";
 
@@ -62,7 +64,14 @@ const UserLayout = ({ children }) => {
               size="sm"
             />
             <Flex align="center" gap="xs">
-              <Image src={logo} height={48} width={48} />
+              <ThemeIcon
+                size="xl"
+                radius="md"
+                variant="gradient"
+                gradient={{ from: "blue", to: "cyan" }}
+              >
+                <IconSparkles size={rem(24)} />
+              </ThemeIcon>
               <Text size="lg" fw={800} c="blue">
                 POLLR
               </Text>

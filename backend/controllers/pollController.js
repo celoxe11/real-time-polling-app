@@ -2,7 +2,7 @@ const Poll = require("../models/Poll");
 
 const getPolls = async (req, res) => {
   try {
-    const polls = await Poll.find({});
+    const polls = await Poll.find({}).populate("createdBy", "name photoURL");
     return res.status(200).json(polls);
   } catch (error) {
     console.log(error.message);
@@ -125,7 +125,7 @@ const deletePoll = async (req, res) => {
 const getPollById = async (req, res) => {
   try {
     const { id } = req.params;
-    const poll = await Poll.findById(id);
+    const poll = await Poll.findById(id).populate("createdBy", "name photoURL");
     return res.status(200).json(poll);
   } catch (error) {
     console.log(error.message);
@@ -205,6 +205,40 @@ const getTrendingPolls = async (req, res) => {
       {
         $limit: limit,
       },
+      {
+        $lookup: {
+          from: "users",
+          localField: "createdBy",
+          foreignField: "_id",
+          as: "creator",
+        },
+      },
+      {
+        $unwind: {
+          path: "$creator",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+      {
+        $addFields: {
+          id: "$_id",
+          status: {
+            $cond: {
+              if: {
+                $or: [
+                  { $eq: ["$hasTimeLimit", false] },
+                  { $eq: ["$endTime", null] },
+                  { $gt: ["$endTime", new Date()] },
+                ],
+              },
+              then: "active",
+              else: "closed",
+            },
+          },
+          "creator.name": "$creator.name",
+          "creator.photoURL": "$creator.photoURL",
+        },
+      },
     ]);
 
     return res.status(200).json(polls);
@@ -282,6 +316,7 @@ const getPopularPolls = async (req, res) => {
       },
       {
         $project: {
+          id: "$_id",
           title: 1,
           description: 1,
           category: 1,
@@ -313,6 +348,20 @@ const searchPolls = async (req, res) => {
   }
 };
 
+const getPollByRoomCode = async (req, res) => {
+  try {
+    const { roomCode } = req.params;
+    const poll = await Poll.findOne({ roomCode });
+    if (!poll) {
+      return res.status(404).json({ message: "Poll not found" });
+    }
+    return res.status(200).json(poll);
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   getPolls,
   getMyPolls,
@@ -325,4 +374,5 @@ module.exports = {
   getRecentPolls,
   getPopularPolls,
   searchPolls,
+  getPollByRoomCode,
 };

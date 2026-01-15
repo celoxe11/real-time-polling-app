@@ -69,6 +69,14 @@ PollSchema.virtual("id").get(function () {
   return this._id.toHexString();
 });
 
+// Virtual field for totalVotes
+PollSchema.virtual("totalVotes").get(function () {
+  if (!this.options || this.options.length === 0) {
+    return 0;
+  }
+  return this.options.reduce((sum, option) => sum + (option.votes || 0), 0);
+});
+
 // Ensure virtuals are included when converting to JSON
 PollSchema.set("toJSON", {
   virtuals: true,

@@ -190,7 +190,7 @@ const EditPage = () => {
       };
 
       console.log("Updating poll:", pollData);
-      const result = await dispatch(updatePoll(id, pollData));
+      const result = await dispatch(updatePoll({ id, pollData }));
       console.log("Result: ", result);
 
       // Check if the action was rejected

@@ -28,6 +28,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { getMyPolls } from "../../store/slices/pollSlice";
 import { deletePoll } from "../../store/slices/pollSlice";
 import { useEffect } from "react";
+import { MyPollCard } from "../../components/MyPollCard";
 
 const MyPollsPage = () => {
   const navigate = useNavigate();
@@ -57,77 +58,6 @@ const MyPollsPage = () => {
       dispatch(deletePoll(pollId));
     }
   };
-
-  const PollCard = ({ poll }) => (
-    <Card shadow="sm" padding="lg" radius="md" withBorder h="100%">
-      <Group justify="space-between" mb="md">
-        <Badge
-          color={poll.status === "active" ? "green" : "gray"}
-          variant="light"
-        >
-          {poll.status}
-          {console.log(poll)}
-        </Badge>
-        <Menu shadow="md" width={200}>
-          <Menu.Target>
-            <ActionIcon variant="subtle" color="gray">
-              <IconDots size={18} />
-            </ActionIcon>
-          </Menu.Target>
-          <Menu.Dropdown>
-            <Menu.Item
-              leftSection={<IconEye size={14} />}
-              onClick={() => handleViewPoll(poll.id)}
-            >
-              View Results
-            </Menu.Item>
-            <Menu.Item
-              leftSection={<IconEdit size={14} />}
-              onClick={() => handleEditPoll(poll.id)}
-            >
-              Edit
-            </Menu.Item>
-            <Menu.Divider />
-            <Menu.Item
-              color="red"
-              leftSection={<IconTrash size={14} />}
-              onClick={() => handleDeletePoll(poll.id)}
-            >
-              Delete
-            </Menu.Item>
-          </Menu.Dropdown>
-        </Menu>
-      </Group>
-
-      <Title order={4} lineClamp={2} mb="xs">
-        {poll.title}
-      </Title>
-      <Text size="sm" c="dimmed" lineClamp={2} mb="md">
-        {poll.description}
-      </Text>
-
-      <Group justify="space-between" mt="auto">
-        <Group gap="xs">
-          <IconUsers size={16} stroke={1.5} />
-          <Text size="sm" fw={500}>
-            {poll.totalVotes} votes
-          </Text>
-        </Group>
-        <Text size="xs" c="dimmed">
-          {new Date(poll.createdAt).toLocaleDateString()}
-        </Text>
-      </Group>
-
-      <Button
-        fullWidth
-        mt="md"
-        variant="light"
-        onClick={() => handleViewPoll(poll.id)}
-      >
-        View Details
-      </Button>
-    </Card>
-  );
 
   const EmptyState = ({ message }) => (
     <Card shadow="sm" padding="xl" radius="md" withBorder>
@@ -187,7 +117,12 @@ const MyPollsPage = () => {
             <Grid>
               {activePolls.map((poll) => (
                 <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
-                  <PollCard poll={poll} />
+                  <MyPollCard
+                    poll={poll}
+                    handleDeletePoll={handleDeletePoll}
+                    handleEditPoll={handleEditPoll}
+                    handleViewPoll={handleViewPoll}
+                  />
                 </Grid.Col>
               ))}
             </Grid>
@@ -201,7 +136,12 @@ const MyPollsPage = () => {
             <Grid>
               {closedPolls.map((poll) => (
                 <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
-                  <PollCard poll={poll} />
+                  <MyPollCard
+                    poll={poll}
+                    handleDeletePoll={handleDeletePoll}
+                    handleEditPoll={handleEditPoll}
+                    handleViewPoll={handleViewPoll}
+                  />
                 </Grid.Col>
               ))}
             </Grid>
@@ -215,7 +155,12 @@ const MyPollsPage = () => {
             <Grid>
               {myPolls.map((poll) => (
                 <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
-                  <PollCard poll={poll} />
+                  <MyPollCard
+                    poll={poll}
+                    handleDeletePoll={handleDeletePoll}
+                    handleEditPoll={handleEditPoll}
+                    handleViewPoll={handleViewPoll}
+                  />
                 </Grid.Col>
               ))}
             </Grid>

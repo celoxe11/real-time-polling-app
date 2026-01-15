@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import {
@@ -14,6 +14,9 @@ import {
   ThemeIcon,
   Paper,
   SimpleGrid,
+  Alert,
+  Stack,
+  Divider,
 } from "@mantine/core";
 import {
   IconSearch,
@@ -22,106 +25,46 @@ import {
   IconFlame,
   IconChartBar,
   IconPlus,
+  IconAlertCircle,
+  IconMoodEmpty,
+  IconQrcode,
 } from "@tabler/icons-react";
 import PollCard from "../../components/PollCard";
+import { useDispatch } from "react-redux";
+import {
+  getPopularPolls,
+  getRecentPolls,
+  getTrendingPolls,
+  searchPolls,
+  getPollByRoomCode,
+} from "../../store/slices/pollSlice";
+import { notifications } from "@mantine/notifications";
+import { IconArrowRight } from "@tabler/icons-react";
 
 const HomePage = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("trending");
+  const [joinRoomCode, setJoinRoomCode] = useState("");
+  const [joining, setJoining] = useState(false);
 
-  // Dummy data - public polls that users can participate in
-  const trendingPolls = [
-    {
-      id: 1,
-      title: "What's the best programming language in 2026?",
-      description:
-        "Help us determine the most popular programming language this year",
-      creator: {
-        name: "Tech Community",
-        avatar: null,
-      },
-      totalVotes: 2456,
-      participants: 1823,
-      trending: true,
-      category: "Technology",
-      timeLeft: "2 days left",
-      options: [
-        { label: "JavaScript", votes: 856, percentage: 35 },
-        { label: "Python", votes: 734, percentage: 30 },
-        { label: "TypeScript", votes: 490, percentage: 20 },
-        { label: "Rust", votes: 376, percentage: 15 },
-      ],
-      hasVoted: false,
-    },
-    {
-      id: 2,
-      title: "Best remote work setup?",
-      description: "Share your ideal work-from-home environment",
-      creator: {
-        name: "Remote Workers Hub",
-        avatar: null,
-      },
-      totalVotes: 1234,
-      participants: 892,
-      trending: true,
-      category: "Lifestyle",
-      timeLeft: "5 days left",
-      options: [
-        { label: "Home Office", votes: 617, percentage: 50 },
-        { label: "Coffee Shop", votes: 247, percentage: 20 },
-        { label: "Co-working Space", votes: 247, percentage: 20 },
-        { label: "Hybrid", votes: 123, percentage: 10 },
-      ],
-      hasVoted: false,
-    },
-    {
-      id: 3,
-      title: "Favorite streaming platform?",
-      description: "Which streaming service do you use the most?",
-      creator: {
-        name: "Entertainment Poll",
-        avatar: null,
-      },
-      totalVotes: 3421,
-      participants: 2156,
-      trending: true,
-      category: "Entertainment",
-      timeLeft: "1 day left",
-      options: [
-        { label: "Netflix", votes: 1368, percentage: 40 },
-        { label: "Disney+", votes: 1026, percentage: 30 },
-        { label: "Prime Video", votes: 684, percentage: 20 },
-        { label: "Others", votes: 343, percentage: 10 },
-      ],
-      hasVoted: true,
-    },
-  ];
+  const { trending, recent, popular, polls } = useSelector(
+    (state) => state.poll
+  );
 
-  const recentPolls = [
-    {
-      id: 4,
-      title: "Best time for team meetings?",
-      description: "Help us decide the optimal meeting time",
-      creator: { name: "Workplace Insights", avatar: null },
-      totalVotes: 456,
-      participants: 234,
-      category: "Work",
-      timeLeft: "3 days left",
-      hasVoted: false,
-    },
-    {
-      id: 5,
-      title: "Preferred learning method?",
-      description: "How do you like to learn new skills?",
-      creator: { name: "Education Hub", avatar: null },
-      totalVotes: 789,
-      participants: 456,
-      category: "Education",
-      timeLeft: "1 week left",
-      hasVoted: false,
-    },
-  ];
+  const dispatch = useDispatch();
+
+  useEffect(() => {
+    dispatch(getTrendingPolls());
+    dispatch(getRecentPolls());
+    dispatch(getPopularPolls());
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (searchQuery) {
+      dispatch(searchPolls(searchQuery));
+    }
+  }, [searchQuery, dispatch]);
 
   // Quick stats for the user
   const userStats = [
@@ -132,6 +75,50 @@ const HomePage = () => {
 
   const handleCreatePoll = () => {
     navigate("/create-poll");
+  };
+
+  const handleSearchPoll = (e) => {
+    setSearchQuery(e.target.value);
+  };
+
+  const handleNavigateEnterCode = async (e) => {
+    e.preventDefault();
+    navigate("/enter-code");
+  };
+
+  const handleJoinByRoomCode = async (e) => {
+    e.preventDefault();
+    if (!joinRoomCode || joinRoomCode.length < 8) {
+      notifications.show({
+        title: "Invalid Room Code",
+        message: "Please enter a valid 8-digit room code",
+        color: "red",
+      });
+      return;
+    }
+
+    try {
+      setJoining(true);
+      const resultAction = await dispatch(getPollByRoomCode(joinRoomCode));
+      if (getPollByRoomCode.fulfilled.match(resultAction)) {
+        const poll = resultAction.payload;
+        navigate(`/poll/${poll._id}`);
+      } else {
+        notifications.show({
+          title: "Poll Not Found",
+          message: "No poll found with this room code",
+          color: "red",
+        });
+      }
+    } catch (error) {
+      notifications.show({
+        title: "Error",
+        message: "Something went wrong. Please try again.",
+        color: "red",
+      });
+    } finally {
+      setJoining(false);
+    }
   };
 
   return (
@@ -148,11 +135,11 @@ const HomePage = () => {
             </Text>
           </div>
           <Button
-            leftSection={<IconPlus size={18} />}
-            onClick={handleCreatePoll}
+            leftSection={<IconQrcode size={18} />}
+            onClick={handleNavigateEnterCode}
             size="md"
           >
-            Create Poll
+            Enter Code
           </Button>
         </Group>
 
@@ -188,57 +175,221 @@ const HomePage = () => {
           leftSection={<IconSearch size={16} />}
           size="md"
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={handleSearchPoll}
         />
       </Box>
 
-      {/* Tabs for Different Poll Categories */}
-      <Tabs value={activeTab} onChange={setActiveTab}>
-        <Tabs.List mb="lg">
-          <Tabs.Tab value="trending" leftSection={<IconTrendingUp size={16} />}>
-            Trending
-          </Tabs.Tab>
-          <Tabs.Tab value="recent" leftSection={<IconClock size={16} />}>
-            Recent
-          </Tabs.Tab>
-          <Tabs.Tab value="popular" leftSection={<IconFlame size={16} />}>
-            Popular
-          </Tabs.Tab>
-        </Tabs.List>
+      {searchQuery === "" ? (
+        <>
+          {/* Tabs for Different Poll Categories */}
+          <Tabs value={activeTab} onChange={setActiveTab}>
+            <Tabs.List mb="lg">
+              <Tabs.Tab
+                value="trending"
+                leftSection={<IconTrendingUp size={16} />}
+              >
+                Trending
+              </Tabs.Tab>
+              <Tabs.Tab value="recent" leftSection={<IconClock size={16} />}>
+                Recent
+              </Tabs.Tab>
+              <Tabs.Tab value="popular" leftSection={<IconFlame size={16} />}>
+                Popular
+              </Tabs.Tab>
+            </Tabs.List>
 
-        {/* Trending Polls */}
-        <Tabs.Panel value="trending">
-          <Grid>
-            {trendingPolls.map((poll) => (
-              <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
-                <PollCard poll={poll} showResults={true} />
-              </Grid.Col>
-            ))}
-          </Grid>
-        </Tabs.Panel>
+            {/* Trending Polls */}
+            <Tabs.Panel value="trending">
+              {trending.length === 0 ? (
+                <Paper p="xl" radius="md" withBorder>
+                  <Stack align="center" gap="md">
+                    <ThemeIcon
+                      size={60}
+                      radius="xl"
+                      variant="light"
+                      color="blue"
+                    >
+                      <IconTrendingUp size={32} />
+                    </ThemeIcon>
+                    <div style={{ textAlign: "center" }}>
+                      <Text size="lg" fw={500} mb="xs">
+                        No Trending Polls Yet
+                      </Text>
+                      <Text size="sm" c="dimmed" mb="md">
+                        Be the first to create a poll and start the
+                        conversation!
+                      </Text>
+                      <Button
+                        leftSection={<IconPlus size={16} />}
+                        onClick={handleCreatePoll}
+                      >
+                        Create Your First Poll
+                      </Button>
+                    </div>
+                  </Stack>
+                </Paper>
+              ) : (
+                <Grid>
+                  {trending.map((poll) => (
+                    <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
+                      <PollCard poll={poll} showResults={true} />
+                    </Grid.Col>
+                  ))}
+                </Grid>
+              )}
+            </Tabs.Panel>
 
-        {/* Recent Polls */}
-        <Tabs.Panel value="recent">
-          <Grid>
-            {recentPolls.map((poll) => (
-              <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
-                <PollCard poll={poll} showResults={false} />
-              </Grid.Col>
-            ))}
-          </Grid>
-        </Tabs.Panel>
+            {/* Recent Polls */}
+            <Tabs.Panel value="recent">
+              {recent.length === 0 ? (
+                <Paper p="xl" radius="md" withBorder>
+                  <Stack align="center" gap="md">
+                    <ThemeIcon
+                      size={60}
+                      radius="xl"
+                      variant="light"
+                      color="green"
+                    >
+                      <IconClock size={32} />
+                    </ThemeIcon>
+                    <div style={{ textAlign: "center", maxWidth: 400 }}>
+                      <Text size="lg" fw={500} mb="xs">
+                        Start Your First Vote!
+                      </Text>
+                      <Text size="sm" c="dimmed" mb="xl">
+                        You haven't participated in any polls yet. Enter a room
+                        code below or explore trending polls to get started.
+                      </Text>
 
-        {/* Popular Polls */}
-        <Tabs.Panel value="popular">
-          <Grid>
-            {trendingPolls.slice(0, 2).map((poll) => (
-              <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
-                <PollCard poll={poll} showResults={true} />
-              </Grid.Col>
-            ))}
-          </Grid>
-        </Tabs.Panel>
-      </Tabs>
+                      <form onSubmit={handleJoinByRoomCode}>
+                        <Group gap="xs">
+                          <TextInput
+                            placeholder="Enter Room Code (e.g. 12345678)"
+                            value={joinRoomCode}
+                            onChange={(e) => setJoinRoomCode(e.target.value)}
+                            maxLength={8}
+                            style={{ flex: 1 }}
+                            size="md"
+                          />
+                          <Button
+                            type="submit"
+                            loading={joining}
+                            variant="filled"
+                            color="green"
+                            size="md"
+                            rightSection={<IconArrowRight size={16} />}
+                          >
+                            Join
+                          </Button>
+                        </Group>
+                      </form>
+
+                      <Divider
+                        label="OR"
+                        labelPosition="center"
+                        my="xl"
+                        variant="dashed"
+                      />
+
+                      <Button
+                        leftSection={<IconPlus size={16} />}
+                        onClick={handleCreatePoll}
+                        variant="light"
+                        color="green"
+                        fullWidth
+                      >
+                        Create Your Own Poll
+                      </Button>
+                    </div>
+                  </Stack>
+                </Paper>
+              ) : (
+                <Grid>
+                  {recent.map((poll) => (
+                    <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
+                      <PollCard poll={poll} showResults={false} />
+                    </Grid.Col>
+                  ))}
+                </Grid>
+              )}
+            </Tabs.Panel>
+
+            {/* Popular Polls */}
+            <Tabs.Panel value="popular">
+              {popular.length === 0 ? (
+                <Paper p="xl" radius="md" withBorder>
+                  <Stack align="center" gap="md">
+                    <ThemeIcon
+                      size={60}
+                      radius="xl"
+                      variant="light"
+                      color="orange"
+                    >
+                      <IconFlame size={32} />
+                    </ThemeIcon>
+                    <div style={{ textAlign: "center" }}>
+                      <Text size="lg" fw={500} mb="xs">
+                        No Popular Polls Yet
+                      </Text>
+                      <Text size="sm" c="dimmed" mb="md">
+                        Popular polls will appear here based on vote count.
+                      </Text>
+                      <Button
+                        leftSection={<IconPlus size={16} />}
+                        onClick={handleCreatePoll}
+                        variant="light"
+                        color="orange"
+                      >
+                        Create a Poll
+                      </Button>
+                    </div>
+                  </Stack>
+                </Paper>
+              ) : (
+                <Grid>
+                  {popular.map((poll) => (
+                    <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
+                      <PollCard poll={poll} showResults={true} />
+                    </Grid.Col>
+                  ))}
+                </Grid>
+              )}
+            </Tabs.Panel>
+          </Tabs>
+        </>
+      ) : (
+        <>
+          {polls.length === 0 ? (
+            <Paper p="xl" radius="md" withBorder>
+              <Stack align="center" gap="md">
+                <ThemeIcon size={60} radius="xl" variant="light" color="gray">
+                  <IconMoodEmpty size={32} />
+                </ThemeIcon>
+                <div style={{ textAlign: "center" }}>
+                  <Text size="lg" fw={500} mb="xs">
+                    No Polls Found
+                  </Text>
+                  <Text size="sm" c="dimmed" mb="md">
+                    We couldn't find any polls matching "{searchQuery}". Try a
+                    different search term.
+                  </Text>
+                  <Button variant="light" onClick={() => setSearchQuery("")}>
+                    Clear Search
+                  </Button>
+                </div>
+              </Stack>
+            </Paper>
+          ) : (
+            <Grid>
+              {polls.map((poll) => (
+                <Grid.Col key={poll.id} span={{ base: 12, md: 6, lg: 4 }}>
+                  <PollCard poll={poll} showResults={true} />
+                </Grid.Col>
+              ))}
+            </Grid>
+          )}
+        </>
+      )}
     </Container>
   );
 };

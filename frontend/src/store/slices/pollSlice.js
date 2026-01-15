@@ -9,8 +9,6 @@ export const getPolls = createAsyncThunk("poll/getPolls", async () => {
 
 export const getMyPolls = createAsyncThunk("poll/getMyPolls", async () => {
   const response = await pollService.getMyPolls();
-  console.log(response);
-
   return response; // pollService already returns response.data
 });
 
@@ -32,7 +30,7 @@ export const createPoll = createAsyncThunk(
 
 export const updatePoll = createAsyncThunk(
   "poll/updatePoll",
-  async (id, pollData) => {
+  async ({ id, pollData }) => {
     const response = await pollService.updatePoll(id, pollData);
     return response; // pollService already returns response.data
   }
@@ -43,6 +41,49 @@ export const deletePoll = createAsyncThunk(
   async (pollId) => {
     const response = await pollService.deletePoll(pollId);
     return response; // pollService already returns response.data
+  }
+);
+
+export const getTrendingPolls = createAsyncThunk(
+  "poll/getTrendingPolls",
+  async () => {
+    const response = await pollService.getTrendingPolls();
+    console.log("trending polls: ", response);
+    return response; // pollService already returns response.data
+  }
+);
+
+export const getRecentPolls = createAsyncThunk(
+  "poll/getRecentPolls",
+  async () => {
+    const response = await pollService.getRecentPolls();
+    console.log("recent polls: ", response);
+    return response; // pollService already returns response.data
+  }
+);
+
+export const getPopularPolls = createAsyncThunk(
+  "poll/getPopularPolls",
+  async () => {
+    const response = await pollService.getPopularPolls();
+    console.log("popular polls: ", response);
+    return response; // pollService already returns response.data
+  }
+);
+
+export const searchPolls = createAsyncThunk(
+  "poll/searchPolls",
+  async (searchQuery) => {
+    const response = await pollService.searchPolls(searchQuery);
+    return response; // pollService already returns response.data
+  }
+);
+
+export const getPollByRoomCode = createAsyncThunk(
+  "poll/getPollByRoomCode",
+  async (roomCode) => {
+    const response = await pollService.getPollByRoomCode(roomCode);
+    return response;
   }
 );
 
@@ -85,8 +126,6 @@ const pollSlice = createSlice({
       })
       .addCase(getMyPolls.fulfilled, (state, action) => {
         state.loading = false;
-        console.log(action.payload);
-
         state.myPolls = action.payload.myPolls;
         state.activePolls = action.payload.activePolls;
         state.closedPolls = action.payload.closedPolls;
@@ -118,6 +157,8 @@ const pollSlice = createSlice({
       .addCase(createPoll.fulfilled, (state, action) => {
         state.loading = false;
         state.myPolls.push(action.payload);
+        state.activePolls.push(action.payload);
+        state.closedPolls.push(action.payload);
       })
       .addCase(createPoll.rejected, (state, action) => {
         state.loading = false;
@@ -132,7 +173,13 @@ const pollSlice = createSlice({
       .addCase(updatePoll.fulfilled, (state, action) => {
         state.loading = false;
         state.myPolls = state.myPolls.map((poll) =>
-          poll._id === action.payload._id ? action.payload : poll
+          poll.id === action.payload.id ? action.payload : poll
+        );
+        state.activePolls = state.activePolls.map((poll) =>
+          poll.id === action.payload.id ? action.payload : poll
+        );
+        state.closedPolls = state.closedPolls.map((poll) =>
+          poll.id === action.payload.id ? action.payload : poll
         );
       })
       .addCase(updatePoll.rejected, (state, action) => {
@@ -148,10 +195,68 @@ const pollSlice = createSlice({
       .addCase(deletePoll.fulfilled, (state, action) => {
         state.loading = false;
         state.myPolls = state.myPolls.filter(
-          (poll) => poll._id !== action.payload._id
+          (poll) => poll.id !== action.payload.id
+        );
+        state.activePolls = state.activePolls.filter(
+          (poll) => poll.id !== action.payload.id
+        );
+        state.closedPolls = state.closedPolls.filter(
+          (poll) => poll.id !== action.payload.id
         );
       })
       .addCase(deletePoll.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      });
+
+    builder
+      .addCase(getTrendingPolls.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getTrendingPolls.fulfilled, (state, action) => {
+        state.loading = false;
+        state.trending = action.payload;
+      })
+      .addCase(getTrendingPolls.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      });
+
+    builder
+      .addCase(getRecentPolls.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getRecentPolls.fulfilled, (state, action) => {
+        state.loading = false;
+        state.recent = action.payload;
+      })
+      .addCase(getRecentPolls.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      });
+
+    builder
+      .addCase(getPopularPolls.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getPopularPolls.fulfilled, (state, action) => {
+        state.loading = false;
+        state.popular = action.payload;
+      })
+      .addCase(getPopularPolls.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.error.message;
+      });
+
+    builder
+      .addCase(getPollByRoomCode.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(getPollByRoomCode.fulfilled, (state, action) => {
+        state.loading = false;
+        state.poll = action.payload;
+      })
+      .addCase(getPollByRoomCode.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       });

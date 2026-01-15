@@ -70,17 +70,27 @@ const PollCard = ({ poll, showResults = false }) => {
         {/* Results Preview (for trending polls) */}
         {showResults && poll.options && (
           <Stack gap="xs">
-            {poll.options.slice(0, 2).map((option, idx) => (
-              <div key={idx}>
-                <Group justify="space-between" mb={4}>
-                  <Text size="sm">{option.label}</Text>
-                  <Text size="sm" fw={500}>
-                    {option.percentage}%
-                  </Text>
-                </Group>
-                <Progress value={option.percentage} size="sm" />
-              </div>
-            ))}
+            {[...(poll.options || [])]
+              .sort((a, b) => b.votes - a.votes)
+              .slice(0, 2)
+              .map((option, idx) => {
+                const percentage =
+                  poll.totalVotes > 0
+                    ? Math.round((option.votes / poll.totalVotes) * 100)
+                    : 0;
+
+                return (
+                  <div key={idx}>
+                    <Group justify="space-between" mb={4}>
+                      <Text size="sm">{option.label}</Text>
+                      <Text size="sm" fw={500}>
+                        {percentage}%
+                      </Text>
+                    </Group>
+                    <Progress value={percentage} size="sm" />
+                  </div>
+                );
+              })}
             {poll.options.length > 2 && (
               <Text size="xs" c="dimmed">
                 +{poll.options.length - 2} more options

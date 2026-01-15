@@ -262,56 +262,50 @@ const MyPollDetailPage = () => {
             <Stack gap="md">
               <Title order={3}>Live Results</Title>
 
-              {totalVotes === 0 ? (
-                <Alert color="blue" icon={<IconAlertCircle size={16} />}>
-                  No votes yet. Share your poll to start collecting responses!
-                </Alert>
-              ) : (
-                <Stack gap="lg">
-                  {poll.options
-                    ?.sort((a, b) => b.votes - a.votes)
-                    .map((option, index) => {
-                      const percentage =
-                        totalVotes > 0
-                          ? Math.round((option.votes / totalVotes) * 100)
-                          : 0;
+              <Stack gap="lg">
+                {[...(poll.options || [])]
+                  .sort((a, b) => b.votes - a.votes)
+                  .map((option, index) => {
+                    const percentage =
+                      totalVotes > 0
+                        ? Math.round((option.votes / totalVotes) * 100)
+                        : 0;
 
-                      return (
-                        <Paper key={option._id} p="md" withBorder>
-                          <Group justify="space-between" mb="xs">
-                            <Group gap="xs">
-                              {index === 0 && totalVotes > 0 && (
-                                <ThemeIcon
-                                  color="yellow"
-                                  variant="light"
-                                  size="sm"
-                                >
-                                  <IconTrophy size={14} />
-                                </ThemeIcon>
-                              )}
-                              <Text fw={500}>{option.optionText}</Text>
-                            </Group>
-                            <Group gap="md">
-                              <Text size="sm" c="dimmed">
-                                {option.votes.toLocaleString()} votes
-                              </Text>
-                              <Text size="lg" fw={700} c="blue">
-                                {percentage}%
-                              </Text>
-                            </Group>
+                    return (
+                      <Paper key={option._id} p="md" withBorder>
+                        <Group justify="space-between" mb="xs">
+                          <Group gap="xs">
+                            {index === 0 && totalVotes > 0 && (
+                              <ThemeIcon
+                                color="yellow"
+                                variant="light"
+                                size="sm"
+                              >
+                                <IconTrophy size={14} />
+                              </ThemeIcon>
+                            )}
+                            <Text fw={500}>{option.optionText}</Text>
                           </Group>
-                          <Progress
-                            value={percentage}
-                            size="lg"
-                            radius="md"
-                            animated
-                            color={index === 0 ? "blue" : "gray"}
-                          />
-                        </Paper>
-                      );
-                    })}
-                </Stack>
-              )}
+                          <Group gap="md">
+                            <Text size="sm" c="dimmed">
+                              {option.votes.toLocaleString()} votes
+                            </Text>
+                            <Text size="lg" fw={700} c="blue">
+                              {percentage}%
+                            </Text>
+                          </Group>
+                        </Group>
+                        <Progress
+                          value={percentage}
+                          size="lg"
+                          radius="md"
+                          animated
+                          color={index === 0 ? "blue" : "gray"}
+                        />
+                      </Paper>
+                    );
+                  })}
+              </Stack>
             </Stack>
           </Paper>
         </Box>
