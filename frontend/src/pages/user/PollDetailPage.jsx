@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import {
   Container,
   Paper,
@@ -45,72 +45,91 @@ import {
   IconTrendingUp,
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
+import { socket, connectSocket, disconnectSocket } from "../../config/socket";
+import { getPollById } from "../../store/slices/pollSlice";
+import { pollService } from "../../services/pollService";
+import { getVoterIdentity } from "../../utils/voterIdentity";
 
 const PollDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { user } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
 
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [hasVoted, setHasVoted] = useState(false);
+  const { poll, loading } = useSelector((state) => state.poll); // ambil poll dari redux store
+  const [voterIdentity, setVoterIdentity] = useState(null); // identitas user yang voting, terutama utk user anonymous
+  const [hasVoted, setHasVoted] = useState(false); // apakah user sudah vote di poll ini
+  const [selectedOption, setSelectedOption] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showResults, setShowResults] = useState(false);
-  const [comment, setComment] = useState("");
-  const [comments, setComments] = useState([]);
+  const [showResults, setShowResults] = useState(true);
 
-  // Dummy poll data - replace with actual API call
-  const [pollData, setPollData] = useState({
-    id: 1,
-    title: "What's the best programming language in 2026?",
-    description:
-      "Help us determine the most popular programming language this year. This poll will help developers understand current trends in the tech industry.",
-    creator: {
-      name: "Tech Community",
-      avatar: null,
-      id: "user123",
-    },
-    category: "Technology",
-    isPublic: true,
-    createdAt: "2026-01-10T10:00:00Z",
-    expiresAt: "2026-01-14T10:00:00Z",
-    totalVotes: 2456,
-    participants: 1823,
-    trending: true,
-    options: [
-      { id: 1, label: "JavaScript", votes: 856, percentage: 35 },
-      { id: 2, label: "Python", votes: 734, percentage: 30 },
-      { id: 3, label: "TypeScript", votes: 490, percentage: 20 },
-      { id: 4, label: "Rust", votes: 376, percentage: 15 },
-    ],
-  });
+  console.log("Poll: ", poll);
 
+  // use effect untuk fetch poll by id
   useEffect(() => {
-    // TODO: Fetch poll data from API
-    // Simulate checking if user has voted
-    const userHasVoted = false; // Replace with actual check
-    setHasVoted(userHasVoted);
-    setShowResults(userHasVoted);
+    // fetch poll detail dari backend
+    dispatch(getPollById(id));
 
-    // Dummy comments
-    setComments([
-      {
-        id: 1,
-        user: { name: "John Doe", avatar: null },
-        text: "Great poll! I think Python is the future.",
-        timestamp: "2 hours ago",
-      },
-      {
-        id: 2,
-        user: { name: "Jane Smith", avatar: null },
-        text: "TypeScript has been gaining a lot of traction lately.",
-        timestamp: "5 hours ago",
-      },
-    ]);
+    // initialize voter identity dan check apakah sudah vote
+    const initializeVoter = async () => {
+      try {
+        // Get voter identity (token + fingerprint)
+        const identity = await getVoterIdentity();
+        setVoterIdentity(identity);
+        console.log("Voter Identity:", identity);
+
+        // Check if user has already voted
+        try {
+          const voteStatus = await pollService.checkHasVoted(
+            id,
+            identity.voterToken,
+            identity.fingerprint
+          );
+
+          if (voteStatus.hasVoted) {
+            setHasVoted(true);
+            console.log("✅ User has already voted at:", voteStatus.votedAt);
+          } else {
+            console.log("✅ User has not voted yet");
+          }
+        } catch (error) {
+          console.error("Error checking vote status:", error);
+        }
+      } catch (error) {
+        console.error("Error initializing:", error);
+      }
+    };
+
+    initializeVoter();
+
+    // Connect ke Socket.IO server
+    connectSocket();
+
+    // JOIN ROOM poll ini
+    socket.emit("join_poll", id);
+    console.log(`Joined room: ${id}`);
+
+    // Cleanup saat component unmount (user leave page)
+    return () => {
+      socket.off("vote_update"); // Remove listener
+      disconnectSocket();
+    };
   }, [id]);
+
+  // use effect saat user vote
+  useEffect(() => {
+    const handleVoteUpdate = (voteData) => {
+      console.log("Received vote update:", voteData);
+      // Update poll data di sini berdasarkan voteData
+    };
+    socket.on("vote_update", handleVoteUpdate);
+    return () => {
+      socket.off("vote_update", handleVoteUpdate);
+    };
+  }, []);
 
   const calculateTimeLeft = () => {
     const now = new Date();
-    const expiry = new Date(pollData.expiresAt);
+    const expiry = new Date(poll.expiresAt);
     const diff = expiry - now;
 
     if (diff <= 0) return "Expired";
@@ -123,90 +142,20 @@ const PollDetailPage = () => {
     return "Less than 1 hour left";
   };
 
-  const handleVote = async () => {
-    if (!selectedOption) {
-      notifications.show({
-        title: "No option selected",
-        message: "Please select an option before voting",
-        color: "orange",
-        icon: <IconAlertCircle size={16} />,
-      });
-      return;
-    }
+  const totalVotes =
+    poll?.options?.reduce((sum, opt) => sum + opt.votes, 0) || 0;
 
-    setIsSubmitting(true);
+  const topOption = poll?.options?.reduce(
+    (prev, current) => (prev.votes > current.votes ? prev : current),
+    poll?.options?.[0]
+  );
 
-    try {
-      // TODO: Implement API call to submit vote
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Update local state
-      const updatedOptions = pollData.options.map((opt) =>
-        opt.id === selectedOption ? { ...opt, votes: opt.votes + 1 } : opt
-      );
-
-      const totalVotes = updatedOptions.reduce(
-        (sum, opt) => sum + opt.votes,
-        0
-      );
-      const optionsWithPercentage = updatedOptions.map((opt) => ({
-        ...opt,
-        percentage: Math.round((opt.votes / totalVotes) * 100),
-      }));
-
-      setPollData({
-        ...pollData,
-        options: optionsWithPercentage,
-        totalVotes: totalVotes,
-        participants: pollData.participants + 1,
-      });
-
-      setHasVoted(true);
-      setShowResults(true);
-
-      notifications.show({
-        title: "Vote Submitted! 🎉",
-        message: "Thank you for participating in this poll",
-        color: "green",
-        icon: <IconCheck size={16} />,
-      });
-    } catch (error) {
-      notifications.show({
-        title: "Error",
-        message: error.message || "Failed to submit vote",
-        color: "red",
-        icon: <IconAlertCircle size={16} />,
-      });
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleAddComment = () => {
-    if (!comment.trim()) return;
-
-    const newComment = {
-      id: Date.now(),
-      user: { name: user?.name || "Anonymous", avatar: null },
-      text: comment,
-      timestamp: "Just now",
-    };
-
-    setComments([newComment, ...comments]);
-    setComment("");
-
-    notifications.show({
-      title: "Comment Added",
-      message: "Your comment has been posted",
-      color: "blue",
-      icon: <IconCheck size={16} />,
-    });
-  };
+  const handleVote = async (optionId) => {};
 
   const shareUrl = `${window.location.origin}/polls/${id}`;
 
   const handleShare = (platform) => {
-    const text = `Check out this poll: ${pollData.title}`;
+    const text = `Check out this poll: ${poll.title}`;
     let url = "";
 
     switch (platform) {
@@ -230,9 +179,18 @@ const PollDetailPage = () => {
     if (url) window.open(url, "_blank");
   };
 
-  const topOption = pollData.options.reduce((prev, current) =>
-    prev.votes > current.votes ? prev : current
-  );
+  // Loading state
+  if (loading || !poll) {
+    return (
+      <Container size="lg" py="xl">
+        <Paper shadow="md" p="xl" radius="lg" withBorder>
+          <Stack align="center" gap="md">
+            <Text>Loading poll...</Text>
+          </Stack>
+        </Paper>
+      </Container>
+    );
+  }
 
   return (
     <Container size="lg" py="xl">
@@ -254,9 +212,9 @@ const PollDetailPage = () => {
             <Stack gap="md" mb="xl">
               <Group justify="space-between">
                 <Badge color="blue" variant="light" size="lg">
-                  {pollData.category}
+                  {poll.category}
                 </Badge>
-                {pollData.trending && (
+                {poll.trending && (
                   <Badge
                     color="red"
                     variant="filled"
@@ -267,10 +225,10 @@ const PollDetailPage = () => {
                 )}
               </Group>
 
-              <Title order={1}>{pollData.title}</Title>
+              <Title order={1}>{poll.title}</Title>
 
               <Text c="dimmed" size="sm">
-                {pollData.description}
+                {poll.description}
               </Text>
 
               {/* Creator Info */}
@@ -278,10 +236,10 @@ const PollDetailPage = () => {
                 <Avatar size="sm" radius="xl" />
                 <div>
                   <Text size="sm" fw={500}>
-                    {pollData.creator.name}
+                    {poll.createdBy.name}
                   </Text>
                   <Text size="xs" c="dimmed">
-                    {new Date(pollData.createdAt).toLocaleDateString()}
+                    {new Date(poll.createdAt).toLocaleDateString()}
                   </Text>
                 </div>
               </Group>
@@ -290,7 +248,7 @@ const PollDetailPage = () => {
 
               {/* Stats */}
               <SimpleGrid cols={3}>
-                <div>
+                {/* <div>
                   <Group gap="xs">
                     <ThemeIcon variant="light" color="blue">
                       <IconUsers size={16} />
@@ -300,11 +258,11 @@ const PollDetailPage = () => {
                         Participants
                       </Text>
                       <Text size="lg" fw={700}>
-                        {pollData.participants.toLocaleString()}
+                        {poll.participants.toLocaleString()}
                       </Text>
                     </div>
                   </Group>
-                </div>
+                </div> */}
                 <div>
                   <Group gap="xs">
                     <ThemeIcon variant="light" color="green">
@@ -315,7 +273,7 @@ const PollDetailPage = () => {
                         Total Votes
                       </Text>
                       <Text size="lg" fw={700}>
-                        {pollData.totalVotes.toLocaleString()}
+                        {poll.totalVotes.toLocaleString()}
                       </Text>
                     </div>
                   </Group>
@@ -349,7 +307,7 @@ const PollDetailPage = () => {
                   onChange={setSelectedOption}
                 >
                   <Stack gap="sm">
-                    {pollData.options.map((option) => (
+                    {poll.options.map((option) => (
                       <Paper
                         key={option.id}
                         p="md"
@@ -370,7 +328,7 @@ const PollDetailPage = () => {
                       >
                         <Radio
                           value={option.id}
-                          label={option.label}
+                          label={option.optionText}
                           size="md"
                           styles={{ label: { cursor: "pointer" } }}
                         />
@@ -406,7 +364,7 @@ const PollDetailPage = () => {
                 </Group>
 
                 <Stack gap="lg">
-                  {pollData.options
+                  {poll.options
                     .sort((a, b) => b.votes - a.votes)
                     .map((option, index) => (
                       <Transition
@@ -454,99 +412,60 @@ const PollDetailPage = () => {
                 </Stack>
               </Stack>
             )}
-
-            {/* Comments Section */}
-            <Divider my="xl" />
-
-            <Stack gap="md">
-              <Group justify="space-between">
-                <Title order={3}>
-                  <Group gap="xs">
-                    <IconMessage size={24} />
-                    <span>Comments ({comments.length})</span>
-                  </Group>
-                </Title>
-              </Group>
-
-              {/* Add Comment */}
-              <Paper p="md" withBorder>
-                <Stack gap="sm">
-                  <Textarea
-                    placeholder="Share your thoughts..."
-                    value={comment}
-                    onChange={(e) => setComment(e.target.value)}
-                    minRows={2}
-                    maxRows={4}
-                  />
-                  <Group justify="flex-end">
-                    <Button
-                      leftSection={<IconSend size={16} />}
-                      onClick={handleAddComment}
-                      disabled={!comment.trim()}
-                    >
-                      Post Comment
-                    </Button>
-                  </Group>
-                </Stack>
-              </Paper>
-
-              {/* Comments List */}
-              <Stack gap="sm">
-                {comments.map((c) => (
-                  <Paper key={c.id} p="md" withBorder>
-                    <Group gap="xs" mb="xs">
-                      <Avatar size="sm" radius="xl" />
-                      <div>
-                        <Text size="sm" fw={500}>
-                          {c.user.name}
-                        </Text>
-                        <Text size="xs" c="dimmed">
-                          {c.timestamp}
-                        </Text>
-                      </div>
-                    </Group>
-                    <Text size="sm">{c.text}</Text>
-                  </Paper>
-                ))}
-              </Stack>
-            </Stack>
           </Paper>
         </Box>
 
         {/* Sidebar */}
         <Stack gap="md">
           {/* Leading Option */}
-          <Card shadow="sm" padding="lg" radius="md" withBorder>
-            <Stack gap="md" align="center">
-              <ThemeIcon
-                size={60}
-                radius="xl"
-                variant="gradient"
-                gradient={{ from: "yellow", to: "orange" }}
-              >
-                <IconTrophy size={32} />
-              </ThemeIcon>
-              <div style={{ textAlign: "center" }}>
-                <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
-                  Leading Option
-                </Text>
-                <Title order={3} mt={4}>
-                  {topOption.label}
-                </Title>
-                <RingProgress
-                  sections={[{ value: topOption.percentage, color: "blue" }]}
-                  label={
-                    <Text c="blue" fw={700} ta="center" size="xl">
-                      {topOption.percentage}%
-                    </Text>
-                  }
-                  size={120}
-                  thickness={12}
-                  mt="md"
-                />
-              </div>
-            </Stack>
-          </Card>
+          {poll.totalVotes > 0 && (
+            <Card shadow="sm" padding="lg" radius="md" withBorder>
+              <Stack gap="md" align="center">
+                <ThemeIcon
+                  size={60}
+                  radius="xl"
+                  variant="gradient"
+                  gradient={{ from: "yellow", to: "orange" }}
+                >
+                  <IconTrophy size={32} />
+                </ThemeIcon>
+                <div style={{ textAlign: "center" }}>
+                  <Text size="xs" c="dimmed" tt="uppercase" fw={700}>
+                    Leading Option
+                  </Text>
+                  <Title order={3} mt={4}>
+                    {topOption?.optionText}
+                  </Title>
+                  <RingProgress
+                    sections={[
+                      {
+                        value:
+                          poll.totalVotes > 0
+                            ? Math.round(
+                                (topOption?.votes / poll.totalVotes) * 100
+                              )
+                            : 0,
+                        color: "blue",
+                      },
+                    ]}
+                    label={
+                      <Text c="blue" fw={700} ta="center" size="xl">
+                        {poll.totalVotes > 0
+                          ? Math.round(
+                              (topOption?.votes / poll.totalVotes) * 100
+                            )
+                          : 0}
+                        %
+                      </Text>
+                    }
+                    size={120}
+                    thickness={12}
+                    mt="md"
+                  />
+                </div>
+              </Stack>
+            </Card>
+          )}
 
           {/* Share Poll */}
           <Card shadow="sm" padding="lg" radius="md" withBorder>
@@ -626,7 +545,7 @@ const PollDetailPage = () => {
                   Visibility
                 </Text>
                 <Text size="sm" fw={500} mt={4}>
-                  {pollData.isPublic ? "Public" : "Private"}
+                  {poll.isPublic ? "Public" : "Private"}
                 </Text>
               </div>
               <div>
@@ -634,7 +553,7 @@ const PollDetailPage = () => {
                   Created
                 </Text>
                 <Text size="sm" fw={500} mt={4}>
-                  {new Date(pollData.createdAt).toLocaleDateString()}
+                  {new Date(poll.createdAt).toLocaleDateString()}
                 </Text>
               </div>
               <div>
@@ -642,7 +561,7 @@ const PollDetailPage = () => {
                   Expires
                 </Text>
                 <Text size="sm" fw={500} mt={4}>
-                  {new Date(pollData.expiresAt).toLocaleDateString()}
+                  {new Date(poll.expiresAt).toLocaleDateString()}
                 </Text>
               </div>
             </Stack>

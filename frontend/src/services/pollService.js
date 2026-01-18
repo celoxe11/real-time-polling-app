@@ -25,8 +25,27 @@ export const pollService = {
     const response = await api.get(`/poll/${id}`);
     return response.data;
   },
-  votePoll: async (id, option) => {
-    const response = await api.post(`/poll/${id}/vote`, { option });
+  votePoll: async (id, optionIndex, voterToken, fingerprint) => {
+    const response = await api.post(`/poll/${id}/vote`, {
+      optionIndex,
+      voterToken,
+      fingerprint,
+    });
+    return response.data;
+  },
+  // Check if user has voted in a specific poll
+  checkHasVoted: async (pollId, voterToken, fingerprint) => {
+    const response = await api.post(`/user/has-voted/${pollId}`, {
+      voterToken,
+      fingerprint,
+    });
+    return response.data;
+  },
+  // Get all polls that user has voted in
+  getVotedPolls: async (voterToken) => {
+    const response = await api.post("/user/voted-polls", {
+      voterToken,
+    });
     return response.data;
   },
   getTrendingPolls: async () => {

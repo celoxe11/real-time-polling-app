@@ -1,4 +1,6 @@
 const express = require("express");
+const { createServer } = require("http");
+const { Server } = require("socket.io");
 const app = express();
 const port = 3000;
 
@@ -29,13 +31,39 @@ app.use("/api/poll", pollRoute);
 const userRoute = require("./routes/userRoute");
 app.use("/api/user", userRoute);
 
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: ["http://localhost:5173"], // Harus sama dengan CORS Express Anda
+    credentials: true,
+  },
+});
+
+// Logic Socket.io (Bisa ditaruh di file terpisah agar rapi)
+io.on("connection", (socket) => {
+  console.log("a user connected:", socket.id);
+
+  socket.on("join_poll", (pollId) => {
+    socket.join(pollId);
+    console.log(`User joined poll: ${pollId}`);
+  });
+  
+  socket.on("disconnect", () => {
+    console.log("user disconnected:", socket.id);
+  });
+});
+
+// EXPORT 'io' agar bisa dipakai di Routes/Controllers Anda
+// (Sangat penting untuk mengirim update saat ada vote baru)
+app.set("socketio", io);
+
 const initApp = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("Connected to MongoDB");
 
-    app.listen(port, () =>
-      console.log(`Example app listening on port ${port}!`)
+    httpServer.listen(port, () =>
+      console.log(`Server (HTTP + Socket.io) listening on port ${port}!`)
     );
   } catch (error) {
     console.error("Failed to connect to MongoDB", error);

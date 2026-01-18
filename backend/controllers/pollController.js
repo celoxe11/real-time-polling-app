@@ -1,4 +1,5 @@
 const Poll = require("../models/Poll");
+const VoterLog = require("../models/VoterLog");
 
 const getPolls = async (req, res) => {
   try {
@@ -126,6 +127,8 @@ const getPollById = async (req, res) => {
   try {
     const { id } = req.params;
     const poll = await Poll.findById(id).populate("createdBy", "name photoURL");
+    console.log(poll);
+
     return res.status(200).json(poll);
   } catch (error) {
     console.log(error.message);
@@ -136,11 +139,78 @@ const getPollById = async (req, res) => {
 const votePoll = async (req, res) => {
   try {
     const { id } = req.params;
-    const { option } = req.body;
-    const poll = await Poll.findByIdAndUpdate(id, {
-      $inc: { [`options.${option}.votes`]: 1 },
+    const { optionIndex, voterToken, fingerprint } = req.body;
+
+    // Validation
+    if (optionIndex === undefined || optionIndex === null) {
+      return res.status(400).json({ message: "Option index is required" });
+    }
+
+    if (!voterToken || !fingerprint) {
+      return res.status(400).json({
+        message: "Voter token and fingerprint are required",
+      });
+    }
+
+    // Check if poll exists
+    const poll = await Poll.findById(id);
+    if (!poll) {
+      return res.status(404).json({ message: "Poll not found" });
+    }
+
+    // Check if poll is still active
+    if (poll.status === "closed") {
+      return res.status(403).json({ message: "This poll is closed" });
+    }
+
+    // Check if user has already voted (two-layer check)
+    const existingVote = await VoterLog.findOne({
+      pollId: id,
+      $or: [{ voterToken: voterToken }, { fingerprint: fingerprint }],
     });
-    return res.status(200).json(poll);
+
+    if (existingVote) {
+      return res.status(403).json({
+        message: "You have already voted in this poll",
+        hasVoted: true,
+      });
+    }
+
+    // Validate option index
+    if (optionIndex < 0 || optionIndex >= poll.options.length) {
+      return res.status(400).json({ message: "Invalid option index" });
+    }
+
+    // Update vote dengan mengembalikan dokumen yang sudah diupdate
+    const updatedPoll = await Poll.findByIdAndUpdate(
+      id,
+      {
+        $inc: { [`options.${optionIndex}.votes`]: 1 },
+      },
+      { new: true } // Return updated document
+    ).populate("createdBy", "name photoURL");
+
+    // Save to VoterLog
+    await VoterLog.create({
+      pollId: id,
+      voterToken: voterToken,
+      fingerprint: fingerprint,
+      voterAt: new Date(),
+    });
+
+    const io = req.app.get("socketio");
+
+    // Emit updated poll data to all clients in the poll room
+    io.to(id).emit("vote_update", {
+      pollId: id,
+      options: updatedPoll.options,
+      totalVotes: updatedPoll.totalVotes,
+    });
+
+    return res.status(200).json({
+      ...updatedPoll.toObject(),
+      hasVoted: true,
+    });
   } catch (error) {
     console.log(error.message);
     return res.status(500).json({ message: error.message });
