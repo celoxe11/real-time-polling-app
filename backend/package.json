@@ -7,7 +7,8 @@
     "seed:all": "node seeders/index.js",
     "seed:users": "node seeders/userSeeder.js",
     "seed:polls": "node seeders/pollSeeder.js",
-    "seed:clear": "node seeders/pollSeeder.js --clear"
+    "seed:clear": "node seeders/pollSeeder.js --clear",
+    "dev": "npx nodemon index.js"
   },
   "keywords": [],
   "author": "",

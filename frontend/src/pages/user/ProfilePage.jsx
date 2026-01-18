@@ -36,6 +36,8 @@ import {
 } from "@tabler/icons-react";
 import { authService } from "../../services/authService";
 import { logoutUser } from "../../store/slices/authSlice";
+import { useEffect } from "react";
+import { getProfileStats } from "../../store/slices/userSlice";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -45,13 +47,35 @@ const ProfilePage = () => {
     useDisclosure(false);
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
+  const [stats, setStats] = useState([]);
 
-  // Dummy statistics - will be replaced with real data from API
-  const stats = [
-    { icon: IconChartBar, label: "Polls Created", value: "12", color: "blue" },
-    { icon: IconUsers, label: "Total Votes", value: "1,234", color: "green" },
-    { icon: IconTrophy, label: "Active Polls", value: "8", color: "orange" },
-  ];
+  const { totalCreatedPolls, totalVotesReceived, activePolls } = useSelector(
+    (state) => state.user,
+  );
+
+  useEffect(() => {
+    dispatch(getProfileStats());
+    setStats([
+      {
+        icon: IconChartBar,
+        label: "Polls Created",
+        value: totalCreatedPolls.toString(),
+        color: "blue",
+      },
+      {
+        icon: IconUsers,
+        label: "Total Votes",
+        value: totalVotesReceived,
+        color: "green",
+      },
+      {
+        icon: IconTrophy,
+        label: "Active Polls",
+        value: activePolls,
+        color: "orange",
+      },
+    ]);
+  }, []);
 
   const form = useForm({
     initialValues: {

@@ -40,6 +40,7 @@ import {
 } from "../../store/slices/pollSlice";
 import { notifications } from "@mantine/notifications";
 import { IconArrowRight } from "@tabler/icons-react";
+import { getUserStats } from "../../store/slices/userSlice";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -47,17 +48,44 @@ const HomePage = () => {
   const [activeTab, setActiveTab] = useState("trending");
   const [joinRoomCode, setJoinRoomCode] = useState("");
   const [joining, setJoining] = useState(false);
+  const [userStats, setUserStats] = useState([]);
 
   const { trending, recent, popular, polls } = useSelector(
-    (state) => state.poll
+    (state) => state.poll,
+  );
+
+  const { totalVotedPolls, weeklyVotedPolls, votingStreak } = useSelector(
+    (state) => state.user,
   );
 
   const dispatch = useDispatch();
 
   useEffect(() => {
+    dispatch(getUserStats());
     dispatch(getTrendingPolls());
     dispatch(getRecentPolls());
     dispatch(getPopularPolls());
+
+    setUserStats([
+      {
+        icon: IconChartBar,
+        label: "Polls Voted",
+        value: totalVotedPolls,
+        color: "blue",
+      },
+      {
+        icon: IconTrendingUp,
+        label: "This Week",
+        value: weeklyVotedPolls,
+        color: "green",
+      },
+      {
+        icon: IconFlame,
+        label: "Streak",
+        value: votingStreak + " days",
+        color: "orange",
+      },
+    ]);
   }, [dispatch]);
 
   useEffect(() => {
@@ -65,13 +93,6 @@ const HomePage = () => {
       dispatch(searchPolls(searchQuery));
     }
   }, [searchQuery, dispatch]);
-
-  // Quick stats for the user
-  const userStats = [
-    { icon: IconChartBar, label: "Polls Voted", value: "23", color: "blue" },
-    { icon: IconTrendingUp, label: "This Week", value: "5", color: "green" },
-    { icon: IconFlame, label: "Streak", value: "7 days", color: "orange" },
-  ];
 
   const handleCreatePoll = () => {
     navigate("/create-poll");

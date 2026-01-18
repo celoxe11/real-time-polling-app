@@ -10,7 +10,7 @@ dotenv.config();
 
 const cors = require("cors");
 const corsOptions = {
-  origin: ["http://localhost:5173"],
+  origin: [process.env.APP_URL || "http://localhost:5173"], // sesuaikan dengan frontend Anda
   credentials: true, // allow credentials seperti cookie, authorization header, dsb
 };
 app.use(cors(corsOptions));
@@ -34,7 +34,7 @@ app.use("/api/user", userRoute);
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {
-    origin: ["http://localhost:5173"], // Harus sama dengan CORS Express Anda
+    origin: [process.env.APP_URL || "http://localhost:5173"], // Harus sama dengan CORS Express Anda
     credentials: true,
   },
 });
