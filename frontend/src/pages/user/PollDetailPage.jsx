@@ -46,7 +46,11 @@ import {
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
 import { socket, connectSocket, disconnectSocket } from "../../config/socket";
-import { getPollById } from "../../store/slices/pollSlice";
+import {
+  getPollById,
+  votePoll,
+  updatePollLocal,
+} from "../../store/slices/pollSlice";
 import { pollService } from "../../services/pollService";
 import { getVoterIdentity } from "../../utils/voterIdentity";
 
@@ -62,8 +66,6 @@ const PollDetailPage = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showResults, setShowResults] = useState(true);
 
-  console.log("Poll: ", poll);
-
   // use effect untuk fetch poll by id
   useEffect(() => {
     // fetch poll detail dari backend
@@ -75,14 +77,13 @@ const PollDetailPage = () => {
         // Get voter identity (token + fingerprint)
         const identity = await getVoterIdentity();
         setVoterIdentity(identity);
-        console.log("Voter Identity:", identity);
 
         // Check if user has already voted
         try {
           const voteStatus = await pollService.checkHasVoted(
             id,
             identity.voterToken,
-            identity.fingerprint
+            identity.fingerprint,
           );
 
           if (voteStatus.hasVoted) {
@@ -105,12 +106,20 @@ const PollDetailPage = () => {
     connectSocket();
 
     // JOIN ROOM poll ini
-    socket.emit("join_poll", id);
-    console.log(`Joined room: ${id}`);
+    const handleConnect = () => {
+      socket.emit("join_poll", id);
+      console.log(`Joined room: ${id}`);
+    };
+
+    if (socket.connected) {
+      handleConnect();
+    } else {
+      socket.on("connect", handleConnect);
+    }
 
     // Cleanup saat component unmount (user leave page)
     return () => {
-      socket.off("vote_update"); // Remove listener
+      socket.off("connect", handleConnect);
       disconnectSocket();
     };
   }, [id]);
@@ -119,13 +128,13 @@ const PollDetailPage = () => {
   useEffect(() => {
     const handleVoteUpdate = (voteData) => {
       console.log("Received vote update:", voteData);
-      // Update poll data di sini berdasarkan voteData
+      dispatch(updatePollLocal(voteData));
     };
     socket.on("vote_update", handleVoteUpdate);
     return () => {
       socket.off("vote_update", handleVoteUpdate);
     };
-  }, []);
+  }, [dispatch]);
 
   const calculateTimeLeft = () => {
     const now = new Date();
@@ -142,17 +151,100 @@ const PollDetailPage = () => {
     return "Less than 1 hour left";
   };
 
-  const totalVotes =
-    poll?.options?.reduce((sum, opt) => sum + opt.votes, 0) || 0;
-
   const topOption = poll?.options?.reduce(
     (prev, current) => (prev.votes > current.votes ? prev : current),
-    poll?.options?.[0]
+    poll?.options?.[0],
   );
 
-  const handleVote = async (optionId) => {};
+  const handleVote = async () => {
+    if (!selectedOption) {
+      notifications.show({
+        title: "Selection Required",
+        message: "Please select an option to cast your vote.",
+        color: "orange",
+        icon: <IconAlertCircle />,
+      });
+      return;
+    }
 
-  const shareUrl = `${window.location.origin}/polls/${id}`;
+    if (hasVoted) {
+      notifications.show({
+        title: "Vote Already Submitted",
+        message: "You have already voted in this poll.",
+        color: "yellow",
+        icon: <IconAlertCircle />,
+      });
+      return;
+    }
+
+    if (!voterIdentity) {
+      notifications.show({
+        title: "Voter Identity Missing",
+        message: "Voter identity not initialized. Please refresh the page.",
+        color: "red",
+        icon: <IconAlertCircle />,
+      });
+      return;
+    }
+
+    if (isSubmitting) return; // Prevent double submission
+
+    try {
+      setIsSubmitting(true);
+
+      // Find the index of the selected option
+      const optionIndex = poll.options.findIndex(
+        (opt) => opt.id === selectedOption || opt._id === selectedOption,
+      );
+
+      if (optionIndex === -1) {
+        throw new Error("Invalid option selected");
+      }
+
+      // Send vote with voter identity
+      const updatedPoll = await dispatch(
+        votePoll({
+          id,
+          optionIndex: optionIndex,
+          voterToken: voterIdentity.voterToken,
+          fingerprint: voterIdentity.fingerprint,
+        }),
+      ).unwrap();
+
+      console.log("Updated Poll: ", updatedPoll);
+
+      setHasVoted(true);
+      notifications.show({
+        title: "Vote Submitted",
+        message: "Your vote has been submitted successfully! ✅",
+        color: "green",
+        icon: <IconCheck />,
+      });
+    } catch (error) {
+      console.error("Error voting:", error);
+      if (error.response?.status === 403) {
+        // User has already voted
+        setHasVoted(true);
+        notifications.show({
+          title: "Vote Already Submitted",
+          message: "You have already voted in this poll.",
+          color: "yellow",
+          icon: <IconAlertCircle />,
+        });
+      } else {
+        notifications.show({
+          title: "Vote Failed",
+          message: "Failed to submit vote. Please try again.",
+          color: "red",
+          icon: <IconAlertCircle />,
+        });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const shareUrl = `${window.location.origin}/poll/${id}`;
 
   const handleShare = (platform) => {
     const text = `Check out this poll: ${poll.title}`;
@@ -161,17 +253,17 @@ const PollDetailPage = () => {
     switch (platform) {
       case "twitter":
         url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(
-          text
+          text,
         )}&url=${encodeURIComponent(shareUrl)}`;
         break;
       case "facebook":
         url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(
-          shareUrl
+          shareUrl,
         )}`;
         break;
       case "whatsapp":
         url = `https://wa.me/?text=${encodeURIComponent(
-          text + " " + shareUrl
+          text + " " + shareUrl,
         )}`;
         break;
     }
@@ -309,25 +401,27 @@ const PollDetailPage = () => {
                   <Stack gap="sm">
                     {poll.options.map((option) => (
                       <Paper
-                        key={option.id}
+                        key={option._id || option.id}
                         p="md"
                         withBorder
                         style={{
                           cursor: "pointer",
                           transition: "all 0.2s",
                           backgroundColor:
-                            selectedOption === option.id
+                            selectedOption === (option._id || option.id)
                               ? "var(--mantine-color-blue-0)"
                               : "transparent",
                           borderColor:
-                            selectedOption === option.id
+                            selectedOption === (option._id || option.id)
                               ? "var(--mantine-color-blue-6)"
                               : undefined,
                         }}
-                        onClick={() => setSelectedOption(option.id)}
+                        onClick={() =>
+                          setSelectedOption(option._id || option.id)
+                        }
                       >
                         <Radio
-                          value={option.id}
+                          value={option._id || option.id}
                           label={option.optionText}
                           size="md"
                           styles={{ label: { cursor: "pointer" } }}
@@ -364,51 +458,58 @@ const PollDetailPage = () => {
                 </Group>
 
                 <Stack gap="lg">
-                  {poll.options
+                  {[...poll.options]
                     .sort((a, b) => b.votes - a.votes)
-                    .map((option, index) => (
-                      <Transition
-                        key={option.id}
-                        mounted={showResults}
-                        transition="slide-up"
-                        duration={300 + index * 100}
-                        timingFunction="ease"
-                      >
-                        {(styles) => (
-                          <Paper p="md" withBorder style={styles}>
-                            <Group justify="space-between" mb="xs">
-                              <Group gap="xs">
-                                {index === 0 && (
-                                  <ThemeIcon
-                                    color="yellow"
-                                    variant="light"
-                                    size="sm"
-                                  >
-                                    <IconTrophy size={14} />
-                                  </ThemeIcon>
-                                )}
-                                <Text fw={500}>{option.label}</Text>
+                    .map((option, index) => {
+                      const percentage =
+                        poll.totalVotes > 0
+                          ? Math.round((option.votes / poll.totalVotes) * 100)
+                          : 0;
+
+                      return (
+                        <Transition
+                          key={option.id || option._id}
+                          mounted={showResults}
+                          transition="slide-up"
+                          duration={300 + index * 100}
+                          timingFunction="ease"
+                        >
+                          {(styles) => (
+                            <Paper p="md" withBorder style={styles}>
+                              <Group justify="space-between" mb="xs">
+                                <Group gap="xs">
+                                  {index === 0 && (
+                                    <ThemeIcon
+                                      color="yellow"
+                                      variant="light"
+                                      size="sm"
+                                    >
+                                      <IconTrophy size={14} />
+                                    </ThemeIcon>
+                                  )}
+                                  <Text fw={500}>{option.optionText}</Text>
+                                </Group>
+                                <Group gap="md">
+                                  <Text size="sm" c="dimmed">
+                                    {option.votes.toLocaleString()} votes
+                                  </Text>
+                                  <Text size="lg" fw={700} c="blue">
+                                    {percentage}%
+                                  </Text>
+                                </Group>
                               </Group>
-                              <Group gap="md">
-                                <Text size="sm" c="dimmed">
-                                  {option.votes.toLocaleString()} votes
-                                </Text>
-                                <Text size="lg" fw={700} c="blue">
-                                  {option.percentage}%
-                                </Text>
-                              </Group>
-                            </Group>
-                            <Progress
-                              value={option.percentage}
-                              size="lg"
-                              radius="md"
-                              animated
-                              color={index === 0 ? "blue" : "gray"}
-                            />
-                          </Paper>
-                        )}
-                      </Transition>
-                    ))}
+                              <Progress
+                                value={percentage}
+                                size="lg"
+                                radius="md"
+                                animated
+                                color={index === 0 ? "blue" : "gray"}
+                              />
+                            </Paper>
+                          )}
+                        </Transition>
+                      );
+                    })}
                 </Stack>
               </Stack>
             )}
@@ -442,7 +543,7 @@ const PollDetailPage = () => {
                         value:
                           poll.totalVotes > 0
                             ? Math.round(
-                                (topOption?.votes / poll.totalVotes) * 100
+                                (topOption?.votes / poll.totalVotes) * 100,
                               )
                             : 0,
                         color: "blue",
@@ -452,7 +553,7 @@ const PollDetailPage = () => {
                       <Text c="blue" fw={700} ta="center" size="xl">
                         {poll.totalVotes > 0
                           ? Math.round(
-                              (topOption?.votes / poll.totalVotes) * 100
+                              (topOption?.votes / poll.totalVotes) * 100,
                             )
                           : 0}
                         %

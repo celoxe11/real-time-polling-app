@@ -127,8 +127,6 @@ const getPollById = async (req, res) => {
   try {
     const { id } = req.params;
     const poll = await Poll.findById(id).populate("createdBy", "name photoURL");
-    console.log(poll);
-
     return res.status(200).json(poll);
   } catch (error) {
     console.log(error.message);

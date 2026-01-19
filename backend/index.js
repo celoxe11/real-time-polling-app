@@ -45,7 +45,6 @@ io.on("connection", (socket) => {
 
   socket.on("join_poll", (pollId) => {
     socket.join(pollId);
-    console.log(`User joined poll: ${pollId}`);
   });
   
   socket.on("disconnect", () => {

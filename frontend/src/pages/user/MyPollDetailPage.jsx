@@ -39,7 +39,12 @@ import {
   IconTrash,
 } from "@tabler/icons-react";
 import { notifications } from "@mantine/notifications";
-import { getPollById, deletePoll } from "../../store/slices/pollSlice";
+import {
+  getPollById,
+  deletePoll,
+  updatePollLocal,
+} from "../../store/slices/pollSlice";
+import { socket, connectSocket, disconnectSocket } from "../../config/socket";
 import DeleteModal from "../../components/DeleteModal";
 import QRCodeModal from "../../components/QRCodeModal";
 
@@ -54,7 +59,38 @@ const MyPollDetailPage = () => {
 
   useEffect(() => {
     dispatch(getPollById(id));
+
+    // Socket logic
+    connectSocket();
+
+    const handleConnect = () => {
+      socket.emit("join_poll", id);
+      console.log(`Joined room: ${id}`);
+    };
+
+    if (socket.connected) {
+      handleConnect();
+    } else {
+      socket.on("connect", handleConnect);
+    }
+
+    return () => {
+      socket.off("connect", handleConnect);
+      disconnectSocket();
+    };
   }, [dispatch, id]);
+
+  useEffect(() => {
+    const handleUpdate = (data) => {
+      console.log("Live update received:", data);
+      dispatch(updatePollLocal(data));
+    };
+
+    socket.on("vote_update", handleUpdate);
+    return () => {
+      socket.off("vote_update", handleUpdate);
+    };
+  }, [dispatch]);
 
   const calculateTimeLeft = () => {
     if (!poll?.hasTimeLimit || !poll?.endTime) return "No time limit";
@@ -131,7 +167,7 @@ const MyPollDetailPage = () => {
     poll?.options?.reduce((sum, opt) => sum + opt.votes, 0) || 0;
   const topOption = poll?.options?.reduce(
     (prev, current) => (prev.votes > current.votes ? prev : current),
-    poll?.options?.[0]
+    poll?.options?.[0],
   );
 
   if (loading) {
@@ -263,7 +299,7 @@ const MyPollDetailPage = () => {
               <Title order={3}>Live Results</Title>
 
               <Stack gap="lg">
-                {[...(poll.options || [])]
+                {[...poll.options]
                   .sort((a, b) => b.votes - a.votes)
                   .map((option, index) => {
                     const percentage =

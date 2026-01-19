@@ -17,7 +17,7 @@ export const getPollById = createAsyncThunk(
   async (pollId) => {
     const response = await pollService.getPollById(pollId);
     return response; // pollService already returns response.data
-  }
+  },
 );
 
 export const createPoll = createAsyncThunk(
@@ -25,7 +25,7 @@ export const createPoll = createAsyncThunk(
   async (pollData) => {
     const response = await pollService.createPoll(pollData);
     return response; // pollService already returns response.data
-  }
+  },
 );
 
 export const updatePoll = createAsyncThunk(
@@ -33,7 +33,7 @@ export const updatePoll = createAsyncThunk(
   async ({ id, pollData }) => {
     const response = await pollService.updatePoll(id, pollData);
     return response; // pollService already returns response.data
-  }
+  },
 );
 
 export const deletePoll = createAsyncThunk(
@@ -41,7 +41,7 @@ export const deletePoll = createAsyncThunk(
   async (pollId) => {
     const response = await pollService.deletePoll(pollId);
     return response; // pollService already returns response.data
-  }
+  },
 );
 
 export const getTrendingPolls = createAsyncThunk(
@@ -50,7 +50,7 @@ export const getTrendingPolls = createAsyncThunk(
     const response = await pollService.getTrendingPolls();
     console.log("trending polls: ", response);
     return response; // pollService already returns response.data
-  }
+  },
 );
 
 export const getRecentPolls = createAsyncThunk(
@@ -59,7 +59,7 @@ export const getRecentPolls = createAsyncThunk(
     const response = await pollService.getRecentPolls();
     console.log("recent polls: ", response);
     return response; // pollService already returns response.data
-  }
+  },
 );
 
 export const getPopularPolls = createAsyncThunk(
@@ -68,7 +68,7 @@ export const getPopularPolls = createAsyncThunk(
     const response = await pollService.getPopularPolls();
     console.log("popular polls: ", response);
     return response; // pollService already returns response.data
-  }
+  },
 );
 
 export const searchPolls = createAsyncThunk(
@@ -76,7 +76,20 @@ export const searchPolls = createAsyncThunk(
   async (searchQuery) => {
     const response = await pollService.searchPolls(searchQuery);
     return response; // pollService already returns response.data
-  }
+  },
+);
+
+export const votePoll = createAsyncThunk(
+  "poll/votePoll",
+  async ({ id, optionIndex, voterToken, fingerprint }) => {
+    const response = await pollService.votePoll(
+      id,
+      optionIndex,
+      voterToken,
+      fingerprint,
+    );
+    return response; // pollService already returns response.data
+  },
 );
 
 export const getPollByRoomCode = createAsyncThunk(
@@ -84,7 +97,7 @@ export const getPollByRoomCode = createAsyncThunk(
   async (roomCode) => {
     const response = await pollService.getPollByRoomCode(roomCode);
     return response;
-  }
+  },
 );
 
 const initialState = {
@@ -103,8 +116,35 @@ const initialState = {
 const pollSlice = createSlice({
   name: "poll",
   initialState,
-  reducers: {},
+  reducers: {
+    updatePollLocal: (state, action) => {
+      const { pollId, options, totalVotes } = action.payload;
+      if (
+        state.poll &&
+        (state.poll.id === pollId || state.poll._id === pollId)
+      ) {
+        state.poll.options = options;
+        state.poll.totalVotes = totalVotes;
+      }
+    },
+  },
   extraReducers: (builder) => {
+    // vote poll
+    builder
+      .addCase(votePoll.pending, (state) => {
+        state.loading = false; // don't set global loading for vote
+      })
+      .addCase(votePoll.fulfilled, (state, action) => {
+        state.poll = action.payload;
+        // update in list if present
+        state.polls = state.polls.map((p) =>
+          p.id === action.payload.id ? action.payload : p,
+        );
+      })
+      .addCase(votePoll.rejected, (state, action) => {
+        state.error = action.error.message;
+      });
+
     builder
       // get polls
       .addCase(getPolls.pending, (state) => {
@@ -173,13 +213,13 @@ const pollSlice = createSlice({
       .addCase(updatePoll.fulfilled, (state, action) => {
         state.loading = false;
         state.myPolls = state.myPolls.map((poll) =>
-          poll.id === action.payload.id ? action.payload : poll
+          poll.id === action.payload.id ? action.payload : poll,
         );
         state.activePolls = state.activePolls.map((poll) =>
-          poll.id === action.payload.id ? action.payload : poll
+          poll.id === action.payload.id ? action.payload : poll,
         );
         state.closedPolls = state.closedPolls.map((poll) =>
-          poll.id === action.payload.id ? action.payload : poll
+          poll.id === action.payload.id ? action.payload : poll,
         );
       })
       .addCase(updatePoll.rejected, (state, action) => {
@@ -195,13 +235,13 @@ const pollSlice = createSlice({
       .addCase(deletePoll.fulfilled, (state, action) => {
         state.loading = false;
         state.myPolls = state.myPolls.filter(
-          (poll) => poll.id !== action.payload.id
+          (poll) => poll.id !== action.payload.id,
         );
         state.activePolls = state.activePolls.filter(
-          (poll) => poll.id !== action.payload.id
+          (poll) => poll.id !== action.payload.id,
         );
         state.closedPolls = state.closedPolls.filter(
-          (poll) => poll.id !== action.payload.id
+          (poll) => poll.id !== action.payload.id,
         );
       })
       .addCase(deletePoll.rejected, (state, action) => {
@@ -263,6 +303,6 @@ const pollSlice = createSlice({
   },
 });
 
-export const {} = pollSlice.actions;
+export const { updatePollLocal } = pollSlice.actions;
 
 export default pollSlice.reducer;
