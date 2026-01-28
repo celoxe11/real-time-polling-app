@@ -51,8 +51,8 @@ const createPoll = async (req, res) => {
               (timeLimitUnit === "hours"
                 ? 60 * 60 * 1000
                 : timeLimitUnit === "days"
-                ? 24 * 60 * 60 * 1000
-                : 7 * 24 * 60 * 60 * 1000)
+                  ? 24 * 60 * 60 * 1000
+                  : 7 * 24 * 60 * 60 * 1000),
         )
       : null;
 
@@ -185,7 +185,7 @@ const votePoll = async (req, res) => {
       {
         $inc: { [`options.${optionIndex}.votes`]: 1 },
       },
-      { new: true } // Return updated document
+      { new: true }, // Return updated document
     ).populate("createdBy", "name photoURL");
 
     // Save to VoterLog
@@ -305,6 +305,7 @@ const getTrendingPolls = async (req, res) => {
           },
           "creator.name": "$creator.name",
           "creator.photoURL": "$creator.photoURL",
+          createdBy: 1,
         },
       },
     ]);
@@ -317,26 +318,52 @@ const getTrendingPolls = async (req, res) => {
 };
 
 const getRecentPolls = async (req, res) => {
-  // Newest polls, sorted by creation date
+  // get current user's rececntly voted polls
   try {
     const limit = parseInt(req.query.limit) || 10;
+    const { voterToken } = req.query;
 
-    const polls = await Poll.find({
-      isPublic: true,
-      status: "active",
-    })
-      .sort({ createdAt: -1 }) // Newest first
+    if (!voterToken) {
+      return res.status(400).json({ message: "Voter token is required" });
+    }
+
+    const votedPolls = await VoterLog.find({ voterToken })
+      .populate({
+        path: "pollId",
+        select: "title description category options createdAt",
+        populate: {
+          path: "createdBy",
+          select: "name photoURL",
+        },
+      })
+      .sort({ voterAt: -1 })
       .limit(limit)
-      .populate("createdBy", "name photoURL") // Include creator info
       .lean();
 
-    // Add total votes to each poll
-    const pollsWithVotes = polls.map((poll) => ({
-      ...poll,
-      totalVotes: poll.options.reduce((sum, opt) => sum + opt.votes, 0),
-    }));
+    // Map to actual poll format for frontend
+    const formattedPolls = votedPolls
+      .filter((log) => log.pollId) // Filter out if poll was deleted
+      .map((log) => {
+        const poll = log.pollId;
+        return {
+          id: poll._id.toString(),
+          title: poll.title,
+          description: poll.description,
+          category: poll.category,
+          options: poll.options,
+          totalVotes:
+            poll.options?.reduce((sum, opt) => sum + (opt.votes || 0), 0) || 0,
+          creator: {
+            name: poll.createdBy?.name || "Unknown",
+            photoURL: poll.createdBy?.photoURL,
+          },
+          createdBy: poll.createdBy?._id || poll.createdBy, // preserve ID
+          createdAt: poll.createdAt,
+          hasVoted: true,
+        };
+      });
 
-    return res.status(200).json(pollsWithVotes);
+    return res.status(200).json(formattedPolls);
   } catch (error) {
     console.log(error.message);
     return res.status(500).json({ message: error.message });
@@ -390,10 +417,10 @@ const getPopularPolls = async (req, res) => {
           category: 1,
           options: 1,
           totalVotes: 1,
-          status: 1,
           createdAt: 1,
           "creator.name": 1,
           "creator.photoURL": 1,
+          createdBy: 1,
         },
       },
     ]);
@@ -408,8 +435,25 @@ const getPopularPolls = async (req, res) => {
 const searchPolls = async (req, res) => {
   try {
     const { query } = req.query;
-    const polls = await Poll.find({ title: { $regex: query, $options: "i" } });
-    return res.status(200).json(polls);
+    const polls = await Poll.find({
+      title: { $regex: query, $options: "i" },
+      isPublic: true, // Only search public polls
+    })
+      .populate("createdBy", "name photoURL")
+      .lean();
+
+    // Ensure consistent format and virtual id
+    const formattedPolls = polls.map((poll) => ({
+      ...poll,
+      id: poll._id.toString(),
+      creator: {
+        name: poll.createdBy?.name || "Unknown",
+        photoURL: poll.createdBy?.photoURL,
+      },
+      createdBy: poll.createdBy?._id || poll.createdBy, // preserve ID
+    }));
+
+    return res.status(200).json(formattedPolls);
   } catch (error) {
     console.log(error.message);
     return res.status(500).json({ message: error.message });
@@ -419,7 +463,10 @@ const searchPolls = async (req, res) => {
 const getPollByRoomCode = async (req, res) => {
   try {
     const { roomCode } = req.params;
-    const poll = await Poll.findOne({ roomCode });
+    const poll = await Poll.findOne({ roomCode }).populate(
+      "createdBy",
+      "name photoURL",
+    );
     if (!poll) {
       return res.status(404).json({ message: "Poll not found" });
     }

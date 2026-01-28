@@ -48,16 +48,14 @@ export const getTrendingPolls = createAsyncThunk(
   "poll/getTrendingPolls",
   async () => {
     const response = await pollService.getTrendingPolls();
-    console.log("trending polls: ", response);
     return response; // pollService already returns response.data
   },
 );
 
 export const getRecentPolls = createAsyncThunk(
   "poll/getRecentPolls",
-  async () => {
-    const response = await pollService.getRecentPolls();
-    console.log("recent polls: ", response);
+  async (voterToken) => {
+    const response = await pollService.getRecentPolls(voterToken);
     return response; // pollService already returns response.data
   },
 );
@@ -66,7 +64,6 @@ export const getPopularPolls = createAsyncThunk(
   "poll/getPopularPolls",
   async () => {
     const response = await pollService.getPopularPolls();
-    console.log("popular polls: ", response);
     return response; // pollService already returns response.data
   },
 );

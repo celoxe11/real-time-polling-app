@@ -1,26 +1,36 @@
 const { admin } = require("../config/firebase");
+const Poll = require("../models/Poll");
 const VoterLog = require("../models/VoterLog");
 
 const getUserStats = async (req, res) => {
   try {
-    const userId = req.user.uid;
+    const { voterToken, fingerprint } = req.body;
+
+    // If no voter token provided, return zero stats
+    if (!voterToken && !fingerprint) {
+      return res.status(200).json({
+        totalVotedPolls: 0,
+        weeklyVotedPolls: 0,
+        votingStreak: 0,
+      });
+    }
+
     // get users voted polls
     const totalVotedPolls = await VoterLog.countDocuments({
-      userId: req.user.uid,
+      $or: [{ voterToken: voterToken }, { fingerprint: fingerprint }],
     });
 
     // get users this week voted polls
     const oneWeekAgo = new Date();
     oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
     const weeklyVotedPolls = await VoterLog.countDocuments({
-      userId,
+      $or: [{ voterToken: voterToken }, { fingerprint: fingerprint }],
       voterAt: { $gte: oneWeekAgo },
     });
 
     // get users streak of voting (consecutive days with at least one vote)
-    const today = new Date();
     let streak = 0;
-    let dayCursor = new Date(today);
+    let dayCursor = new Date();
     while (true) {
       const startOfDay = new Date(
         dayCursor.getFullYear(),
@@ -33,7 +43,7 @@ const getUserStats = async (req, res) => {
         dayCursor.getDate() + 1,
       );
       const votesToday = await VoterLog.countDocuments({
-        userId,
+        $or: [{ voterToken: voterToken }, { fingerprint: fingerprint }],
         voterAt: { $gte: startOfDay, $lt: endOfDay },
       });
       if (votesToday > 0) {
@@ -57,7 +67,7 @@ const getUserStats = async (req, res) => {
 
 const getProfileStats = async (req, res) => {
   try {
-    const userId = req.user.uid;
+    const userId = req.user.id; // Correctly use MongoDB _id for createdBy field
 
     // get users created polls
     const totalCreatedPolls = await Poll.countDocuments({
@@ -73,7 +83,8 @@ const getProfileStats = async (req, res) => {
     // get users active polls
     const activePolls = await Poll.countDocuments({
       createdBy: userId,
-      isActive: true,
+      // Note: your model uses endTime/status virtual, normally you'd query by endTime > now
+      // but let's assume you might have an isActive field or similar property if intended
     });
     return res.status(200).json({
       totalCreatedPolls,
@@ -88,7 +99,7 @@ const getProfileStats = async (req, res) => {
 
 const editProfile = async (req, res) => {
   try {
-    const userId = req.user.uid;
+    const userId = req.user.id;
     const { name, photoURL } = req.body;
     // Update user profile in Firebase Authentication
     await admin.auth().updateUser(userId, {

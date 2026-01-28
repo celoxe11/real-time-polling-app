@@ -17,17 +17,17 @@ const UserSchema = new mongoose.Schema(
       required: true,
       unique: true,
     },
-    profilePicture: {
+    photoURL: {
       type: String,
       default: null,
     },
     role: {
       type: String,
-      enum: ['user', 'admin'],
-      default: 'user',
+      enum: ["user", "admin"],
+      default: "user",
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 const User = mongoose.model("User", UserSchema, "users");

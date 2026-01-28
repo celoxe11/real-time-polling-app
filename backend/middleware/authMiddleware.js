@@ -58,7 +58,7 @@ const verifyFirebaseToken = async (req, res, next) => {
         new: true,
         setDefaultsOnInsert: true,
         runValidators: true,
-      }
+      },
     );
 
     if (!user) {
@@ -74,7 +74,7 @@ const verifyFirebaseToken = async (req, res, next) => {
       uid: decodedToken.uid,
       email: decodedToken.email,
       name: user.name,
-      picture: user.photoURL || decodedToken.picture,
+      photoURL: user.photoURL || decodedToken.picture || null,
       emailVerified: decodedToken.email_verified,
       role: user.role,
     };
@@ -117,7 +117,7 @@ const optionalAuth = async (req, res, next) => {
         uid: decodedToken.uid,
         email: decodedToken.email,
         name: decodedToken.name,
-        picture: decodedToken.picture,
+        photoURL: decodedToken.picture,
       };
     }
 

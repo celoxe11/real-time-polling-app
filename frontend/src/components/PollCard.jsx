@@ -15,12 +15,30 @@ import {
   IconUsers,
   IconCheck,
 } from "@tabler/icons-react";
-import { useNavigate } from "react-router";
+import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+import { useEffect, useState } from "react";
+
 const PollCard = ({ poll, showResults = false }) => {
   const navigate = useNavigate();
+  const { user } = useSelector((state) => state.auth);
+
+  // Check if current user is owner
+  const creatorId = poll.createdBy?._id || poll.createdBy || poll.creator?.id;
+  const [isOwner, setIsOwner] = useState(false);
+
+  useEffect(() => {
+    if (user?.id === creatorId) {
+      setIsOwner(true);
+    }
+  }, [user, creatorId]);
 
   const handleViewPoll = (pollId) => {
-    navigate(`/poll/${pollId}`);
+    if (isOwner) {
+      navigate(`/my-poll/${pollId}`);
+    } else {
+      navigate(`/poll/${pollId}`);
+    }
   };
 
   return (
@@ -61,9 +79,13 @@ const PollCard = ({ poll, showResults = false }) => {
 
         {/* Creator */}
         <Group gap="xs">
-          <Avatar size="sm" radius="xl" />
+          <Avatar
+            src={poll.creator?.photoURL || poll.createdBy?.photoURL}
+            size="sm"
+            radius="xl"
+          />
           <Text size="xs" c="dimmed">
-            by {poll.creator.name}
+            by {poll.creator?.name || poll.createdBy?.name || "Unknown"}
           </Text>
         </Group>
 

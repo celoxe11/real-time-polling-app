@@ -1,8 +1,8 @@
 import api from "./api";
 
 export const userService = {
-  getUserStats: async () => {
-    const response = await api.get("/user/stats");
+  getUserStats: async (voterData) => {
+    const response = await api.post("/user/stats", voterData);
     return response.data;
   },
   getProfileStats: async () => {

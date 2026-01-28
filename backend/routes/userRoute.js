@@ -10,7 +10,7 @@ const {
   getUserVotedPolls,
 } = require("../controllers/userController");
 
-router.get("/stats", verifyFirebaseToken, getUserStats);
+router.post("/stats", verifyFirebaseToken, getUserStats);
 
 router.get("/profile-stats", verifyFirebaseToken, getProfileStats);
 router.post("/edit-profile", verifyFirebaseToken, editProfile);

@@ -1,10 +1,13 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { userService } from "../../services/userService";
 
-export const getUserStats = createAsyncThunk("user/getUserStats", async () => {
-  const response = await userService.getUserStats();
-  return response; // userService already returns response.data
-});
+export const getUserStats = createAsyncThunk(
+  "user/getUserStats",
+  async (voterData) => {
+    const response = await userService.getUserStats(voterData);
+    return response;
+  },
+);
 
 export const getProfileStats = createAsyncThunk(
   "user/getProfileStats",

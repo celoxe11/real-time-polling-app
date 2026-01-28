@@ -52,8 +52,8 @@ export const pollService = {
     const response = await api.get("/poll/trending");
     return response.data;
   },
-  getRecentPolls: async () => {
-    const response = await api.get("/poll/recent");
+  getRecentPolls: async (voterToken) => {
+    const response = await api.get(`/poll/recent?voterToken=${voterToken}`);
     return response.data;
   },
   getPopularPolls: async () => {

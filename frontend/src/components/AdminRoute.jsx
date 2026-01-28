@@ -1,8 +1,16 @@
 import { Navigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import { Center, Loader } from "@mantine/core";
 
 const AdminRoute = ({ children }) => {
-  const { isAuthenticated, user } = useSelector((state) => state.auth);
+  const { isAuthenticated, user, loading } = useSelector((state) => state.auth);
+
+  if (loading)
+    return (
+      <Center>
+        <Loader type="dots" size="xl" />
+      </Center>
+    );
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;

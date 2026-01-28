@@ -70,7 +70,7 @@ const seedUsersFromFirebase = async (skipExit = false) => {
         skipped++;
         console.error(
           `❌ Error processing ${firebaseUser.email}:`,
-          error.message
+          error.message,
         );
       }
     }

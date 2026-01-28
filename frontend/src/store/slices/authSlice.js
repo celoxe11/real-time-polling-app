@@ -18,14 +18,14 @@ export const loginWithGoogle = createAsyncThunk(
 
       // simpan user ke mongodb lewat backend dan dapatkan role
       const backendUser = await authService.verifyUser();
-      console.log(backendUser);
 
       return {
+        id: backendUser.user.id,
         uid: result.user.uid,
         email: result.user.email,
         displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
-        role: backendUser.user.role, // Get role from backend
+        photoURL: backendUser.user.photoURL || result.user.photoURL,
+        role: backendUser.user.role,
       };
     } catch (error) {
       console.error("Login error:", error);
@@ -38,7 +38,7 @@ export const loginWithGoogle = createAsyncThunk(
       }
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const loginWithEmail = createAsyncThunk(
@@ -51,16 +51,17 @@ export const loginWithEmail = createAsyncThunk(
       const backendUser = await authService.verifyUser();
 
       return {
+        id: backendUser.user.id,
         uid: result.user.uid,
         email: result.user.email,
         displayName: result.user.displayName,
-        photoURL: result.user.photoURL,
+        photoURL: backendUser.user.photoURL || result.user.photoURL,
         role: backendUser.user.role,
       };
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const registerWithEmail = createAsyncThunk(
@@ -70,7 +71,7 @@ export const registerWithEmail = createAsyncThunk(
       const result = await createUserWithEmailAndPassword(
         auth,
         email,
-        password
+        password,
       );
 
       // Update display name
@@ -82,16 +83,17 @@ export const registerWithEmail = createAsyncThunk(
       const backendUser = await authService.verifyUser();
 
       return {
+        id: backendUser.user.id,
         uid: result.user.uid,
         email: result.user.email,
         displayName: displayName || result.user.displayName,
-        photoURL: result.user.photoURL,
+        photoURL: backendUser.user.photoURL || result.user.photoURL,
         role: backendUser.user.role,
       };
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 export const logoutUser = createAsyncThunk(
@@ -103,7 +105,7 @@ export const logoutUser = createAsyncThunk(
     } catch (error) {
       return rejectWithValue(error.message);
     }
-  }
+  },
 );
 
 // Initial State

@@ -41,6 +41,7 @@ import {
 import { notifications } from "@mantine/notifications";
 import { IconArrowRight } from "@tabler/icons-react";
 import { getUserStats } from "../../store/slices/userSlice";
+import { getVoterIdentity } from "../../utils/voterIdentity";
 
 const HomePage = () => {
   const navigate = useNavigate();
@@ -61,9 +62,14 @@ const HomePage = () => {
   const dispatch = useDispatch();
 
   useEffect(() => {
-    dispatch(getUserStats());
+    const fetchStats = async () => {
+      const identity = await getVoterIdentity();
+      dispatch(getUserStats(identity));
+      dispatch(getRecentPolls(identity.voterToken));
+    };
+
+    fetchStats();
     dispatch(getTrendingPolls());
-    dispatch(getRecentPolls());
     dispatch(getPopularPolls());
 
     setUserStats([

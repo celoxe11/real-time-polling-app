@@ -39,7 +39,7 @@ const UserLayout = ({ children }) => {
   };
 
   const navItems = [
-    { icon: IconHome, label: "Home", path: "/" },
+    { icon: IconHome, label: "Home", path: "/home" },
     { icon: IconChartBar, label: "My Polls", path: "/my-polls" },
     { icon: IconUser, label: "Profile", path: "/profile" },
   ];
@@ -140,7 +140,7 @@ const UserLayout = ({ children }) => {
 
         <AppShell.Section>
           <Text size="xs" c="dimmed" ta="center">
-            © 2026 Polling App
+            © 2026 Pollr
           </Text>
         </AppShell.Section>
       </AppShell.Navbar>

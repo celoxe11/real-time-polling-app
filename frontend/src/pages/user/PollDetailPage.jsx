@@ -88,9 +88,6 @@ const PollDetailPage = () => {
 
           if (voteStatus.hasVoted) {
             setHasVoted(true);
-            console.log("✅ User has already voted at:", voteStatus.votedAt);
-          } else {
-            console.log("✅ User has not voted yet");
           }
         } catch (error) {
           console.error("Error checking vote status:", error);
@@ -108,7 +105,6 @@ const PollDetailPage = () => {
     // JOIN ROOM poll ini
     const handleConnect = () => {
       socket.emit("join_poll", id);
-      console.log(`Joined room: ${id}`);
     };
 
     if (socket.connected) {
@@ -127,7 +123,6 @@ const PollDetailPage = () => {
   // use effect saat user vote
   useEffect(() => {
     const handleVoteUpdate = (voteData) => {
-      console.log("Received vote update:", voteData);
       dispatch(updatePollLocal(voteData));
     };
     socket.on("vote_update", handleVoteUpdate);
@@ -211,8 +206,6 @@ const PollDetailPage = () => {
         }),
       ).unwrap();
 
-      console.log("Updated Poll: ", updatedPoll);
-
       setHasVoted(true);
       notifications.show({
         title: "Vote Submitted",
@@ -290,7 +283,7 @@ const PollDetailPage = () => {
       <Button
         variant="subtle"
         leftSection={<IconArrowLeft size={16} />}
-        onClick={() => navigate("/")}
+        onClick={() => navigate("/home")}
         mb="lg"
       >
         Back to Polls
@@ -325,10 +318,14 @@ const PollDetailPage = () => {
 
               {/* Creator Info */}
               <Group gap="xs">
-                <Avatar size="sm" radius="xl" />
+                <Avatar
+                  size="sm"
+                  radius="xl"
+                  src={poll.createdBy?.photoURL || poll.creator?.photoURL}
+                />
                 <div>
                   <Text size="sm" fw={500}>
-                    {poll.createdBy.name}
+                    {poll.createdBy?.name || poll.creator?.name || "Unknown"}
                   </Text>
                   <Text size="xs" c="dimmed">
                     {new Date(poll.createdAt).toLocaleDateString()}

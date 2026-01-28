@@ -21,7 +21,7 @@ import PollDetailPage from "./pages/user/PollDetailPage";
 import MyPollDetailPage from "./pages/user/MyPollDetailPage";
 import EditPage from "./pages/user/EditPage";
 import EnterCodePage from "./pages/user/EnterCodePage";
-
+import LandingPage from "./pages/LandingPage";
 function App() {
   const { isAuthenticated, user } = useSelector((state) => state.auth);
 
@@ -30,19 +30,27 @@ function App() {
 
   // Redirect to appropriate home based on role
   const RoleBasedRedirect = () => {
-    if (!isAuthenticated) {
-      return <Navigate to="/login" replace />;
-    }
-
-    if (user?.role === "admin") {
+    if (!isAuthenticated) return <Navigate to="/login" replace />;
+    if (user?.role === "admin")
       return <Navigate to="/admin/dashboard" replace />;
-    }
-
-    return <Navigate to="/" replace />;
+    return <Navigate to="/home" replace />;
   };
+
+  // Wrapper for user routes to handle layout and protection
+  const UserRoutesWrapper = () => (
+    <ProtectedRoute>
+      <UserLayout>
+        <Outlet />
+      </UserLayout>
+    </ProtectedRoute>
+  );
 
   // Create router with routes
   const router = createBrowserRouter([
+    {
+      path: "/",
+      element: <LandingPage />,
+    },
     {
       path: "/login",
       element: isAuthenticated ? <RoleBasedRedirect /> : <LoginPage />,
@@ -51,25 +59,14 @@ function App() {
       path: "/register",
       element: isAuthenticated ? <RoleBasedRedirect /> : <RegisterPage />,
     },
-    // User routes
+    // User routes (top-level)
     {
       path: "/",
-      element: (
-        <ProtectedRoute>
-          <UserLayout>
-            <Outlet />
-          </UserLayout>
-        </ProtectedRoute>
-      ),
+      element: <UserRoutesWrapper />,
       children: [
         {
-          index: true,
-          element:
-            user?.role === "admin" ? (
-              <Navigate to="/admin/dashboard" replace />
-            ) : (
-              <HomePage />
-            ),
+          path: "home",
+          element: <HomePage />,
         },
         {
           path: "my-polls",
@@ -81,7 +78,7 @@ function App() {
         },
         {
           path: "enter-code",
-          element: <EnterCodePage />
+          element: <EnterCodePage />,
         },
         {
           path: "create-poll",
@@ -114,15 +111,6 @@ function App() {
           path: "dashboard",
           element: <DashboardPage />,
         },
-        // Add more admin routes here
-        // {
-        //   path: "users",
-        //   element: <UsersPage />,
-        // },
-        // {
-        //   path: "polls",
-        //   element: <PollsManagementPage />,
-        // },
       ],
     },
   ]);

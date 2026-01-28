@@ -15,13 +15,13 @@ const verifyAndSaveUser = async (req, res) => {
         firebaseUid: uid,
         email: email,
         name: name,
-        profilePicture: picture,
+        photoURL: picture,
       });
       await user.save();
     } else {
       // Update info user jika sudah ada
       user.name = name || user.name;
-      user.profilePicture = picture || user.profilePicture;
+      user.photoURL = picture || user.photoURL;
       await user.save();
     }
 
@@ -33,7 +33,7 @@ const verifyAndSaveUser = async (req, res) => {
         firebaseUid: user.firebaseUid,
         email: user.email,
         name: user.name,
-        profilePicture: user.profilePicture,
+        photoURL: user.photoURL,
       },
     });
   } catch (error) {
@@ -65,7 +65,7 @@ const getCurrentUser = async (req, res) => {
         firebaseUid: user.firebaseUid,
         email: user.email,
         name: user.name,
-        profilePicture: user.profilePicture,
+        photoURL: user.photoURL,
       },
     });
   } catch (error) {

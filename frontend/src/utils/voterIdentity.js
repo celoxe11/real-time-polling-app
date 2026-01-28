@@ -19,10 +19,7 @@ export const getVoterToken = () => {
     // Generate new UUID v4
     token = generateUUID();
     localStorage.setItem(VOTER_TOKEN_KEY, token);
-    console.log('🆕 New voter token generated:', token);
-  } else {
-    console.log('✅ Existing voter token found:', token);
-  }
+  } 
   
   return token;
 };
@@ -64,8 +61,6 @@ export const getFingerprint = async () => {
     
     const fp = await fpPromise;
     const result = await fp.get();
-    
-    console.log('🔐 Fingerprint generated:', result.visitorId);
     
     return result.visitorId;
   } catch (error) {
