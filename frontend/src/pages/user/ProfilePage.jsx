@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -47,6 +47,8 @@ import ChangeProfileModal from "../../components/ChangeProfileModal";
 import DeleteAccountModal from "../../components/DeleteAccountModal";
 import { notifications } from "@mantine/notifications";
 import { IconCheck, IconAlertCircle } from "@tabler/icons-react";
+import { storage } from "../../config/firebase";
+import { ref, uploadBytesResumable, getDownloadURL } from "firebase/storage";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -57,6 +59,8 @@ const ProfilePage = () => {
   const [deleteOpened, { open: openDelete, close: closeDelete }] =
     useDisclosure(false);
   const [stats, setStats] = useState([]);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef(null);
 
   const { totalCreatedPolls, totalVotesReceived, activePolls } = useSelector(
     (state) => state.user,
@@ -160,7 +164,100 @@ const ProfilePage = () => {
     }
   };
 
-  const handleChangeAvatar = () => {};
+  const handleChangeAvatar = () => {
+    // TODO: implement avatar change, perlu FIREBASE STORAGE
+    notifications.show({
+      title: "Feature Not Available",
+      message: "Avatar change feature is not available yet",
+      color: "orange",
+      icon: <IconAlertCircle size={16} />,
+    });
+    // fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Check file type
+    if (!file.type.startsWith("image/")) {
+      notifications.show({
+        title: "Invalid file type",
+        message: "Please select an image file",
+        color: "red",
+        icon: <IconAlertCircle size={16} />,
+      });
+      return;
+    }
+
+    // Check file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      notifications.show({
+        title: "File too large",
+        message: "Image must be less than 2MB",
+        color: "red",
+        icon: <IconAlertCircle size={16} />,
+      });
+      return;
+    }
+
+    try {
+      setUploading(true);
+      const storageRef = ref(storage, `avatars/${user.uid}_${Date.now()}`);
+      const uploadTask = uploadBytesResumable(storageRef, file);
+
+      uploadTask.on(
+        "state_changed",
+        null,
+        (error) => {
+          console.error("Upload error:", error);
+          setUploading(false);
+          notifications.show({
+            title: "Upload Failed",
+            message: "Failed to upload image to storage",
+            color: "red",
+            icon: <IconAlertCircle size={16} />,
+          });
+        },
+        async () => {
+          try {
+            const downloadURL = await getDownloadURL(uploadTask.snapshot.ref);
+            await dispatch(editProfile({ photoURL: downloadURL })).unwrap();
+
+            setUploading(false);
+            notifications.show({
+              title: "Avatar Updated",
+              message: "Your profile picture has been updated successfully",
+              color: "green",
+              icon: <IconCheck size={16} />,
+            });
+          } catch (updateError) {
+            console.error(
+              "Error updating profile with new photoURL:",
+              updateError,
+            );
+            setUploading(false);
+            notifications.show({
+              title: "Update Failed",
+              message:
+                updateError.message || "Failed to update profile picture URL",
+              color: "red",
+              icon: <IconAlertCircle size={16} />,
+            });
+          }
+        },
+      );
+    } catch (error) {
+      console.error("Error updating avatar:", error);
+      setUploading(false);
+      notifications.show({
+        title: "Update Failed",
+        message: error.message || "Failed to update avatar",
+        color: "red",
+        icon: <IconAlertCircle size={16} />,
+      });
+    }
+  };
 
   return (
     <Container size="lg">
@@ -382,6 +479,15 @@ const ProfilePage = () => {
         opened={deleteOpened}
         close={closeDelete}
         handleDeleteAccount={handleDeleteAccount}
+      />
+
+      {/* Hidden File Input */}
+      <input
+        type="file"
+        ref={fileInputRef}
+        style={{ display: "none" }}
+        accept="image/*"
+        onChange={handleFileChange}
       />
     </Container>
   );

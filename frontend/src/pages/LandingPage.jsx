@@ -56,6 +56,16 @@ const LandingPage = () => {
     fetchPolls();
   }, []);
 
+  const getDashboardPath = () => {
+    if (user?.role === "admin") return "/admin/dashboard";
+    return "/home";
+  };
+
+  const getProfilePath = () => {
+    if (user?.role === "admin") return "/admin/dashboard";
+    return "/profile";
+  };
+
   const features = [
     {
       icon: IconUsers,
@@ -106,19 +116,21 @@ const LandingPage = () => {
       >
         <Container size="xl" h="100%">
           <Group justify="space-between" h="100%">
-            <Flex align="center" gap="xs">
-              <ThemeIcon
-                size="xl"
-                radius="md"
-                variant="gradient"
-                gradient={{ from: "blue", to: "cyan" }}
-              >
-                <IconSparkles size={rem(24)} />
-              </ThemeIcon>
-              <Text size="lg" fw={800} c="blue">
-                POLLR
-              </Text>
-            </Flex>
+            <Link to="/" style={{ textDecoration: "none" }}>
+              <Flex align="center" gap="xs">
+                <ThemeIcon
+                  size="xl"
+                  radius="md"
+                  variant="gradient"
+                  gradient={{ from: "blue", to: "cyan" }}
+                >
+                  <IconSparkles size={rem(24)} />
+                </ThemeIcon>
+                <Text size="lg" fw={800} c="blue">
+                  POLLR
+                </Text>
+              </Flex>
+            </Link>
 
             {!isAuthenticated ? (
               <Group visibleFrom="sm">
@@ -145,7 +157,7 @@ const LandingPage = () => {
                   variant="outline"
                   color="blue"
                   component={Link}
-                  to="/home"
+                  to={getDashboardPath()}
                   leftSection={<IconHome size={18} />}
                 >
                   Dashboard
@@ -153,7 +165,7 @@ const LandingPage = () => {
                 <Group
                   gap="xs"
                   style={{ cursor: "pointer" }}
-                  onClick={() => navigate("/profile")}
+                  onClick={getProfilePath()}
                 >
                   <Avatar src={user?.photoURL} radius="xl" size="sm" />
                   <Text size="sm" fw={600} c="white">
@@ -207,8 +219,7 @@ const LandingPage = () => {
                     variant="gradient"
                     gradient={{ from: "blue", to: "cyan" }}
                     rightSection={<IconArrowRight size={20} />}
-                    component={Link}
-                    to={isAuthenticated ? "/home" : "/register"}
+                    to={isAuthenticated ? getDashboardPath() : "/register"}
                   >
                     {isAuthenticated ? "Go to Dashboard" : "Start for Free"}
                   </Button>
@@ -425,7 +436,7 @@ const LandingPage = () => {
                 bg="white"
                 c="blue"
                 component={Link}
-                to={isAuthenticated ? "/home" : "/register"}
+                to={isAuthenticated ? getDashboardPath() : "/register"}
               >
                 {isAuthenticated ? "Go to Dashboard" : "Get Started for Free"}
               </Button>

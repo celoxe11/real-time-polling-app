@@ -57,15 +57,19 @@ const LoginPage = () => {
     },
   });
 
-  const { loading, error, isAuthenticated } = useSelector(
+  const { loading, error, isAuthenticated, user } = useSelector(
     (state) => state.auth,
   );
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/home");
+      if (user?.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/home");
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user]);
 
   const handleGoogleLogin = async () => {
     setLocalLoading(true);
@@ -73,7 +77,12 @@ const LoginPage = () => {
       dispatch(clearError());
       const result = await dispatch(loginWithGoogle());
       if (result.type === "auth/loginWithGoogle/fulfilled") {
-        navigate("/home");
+        const loggedInUser = result.payload;
+        if (loggedInUser?.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/home");
+        }
       }
     } catch (error) {
       console.error("Login error:", error);
@@ -89,7 +98,12 @@ const LoginPage = () => {
         loginWithEmail({ email: values.email, password: values.password }),
       );
       if (result.type === "auth/loginWithEmail/fulfilled") {
-        navigate("/home");
+        const loggedInUser = result.payload;
+        if (loggedInUser?.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/home");
+        }
       }
     } catch (error) {
       console.error("Login error:", error);

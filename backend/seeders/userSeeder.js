@@ -58,7 +58,7 @@ const seedUsersFromFirebase = async (skipExit = false) => {
               firebaseUser.email?.split("@")[0] ||
               "Anonymous",
             photoURL: firebaseUser.photoURL || null,
-            role: "user", // Default role
+            role: firebaseUser.email == "admin@admin.com" ? "admin" : "user",
             createdAt: new Date(firebaseUser.metadata.creationTime),
             lastLogin: new Date(),
           });

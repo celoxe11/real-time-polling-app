@@ -17,7 +17,7 @@ const AdminRoute = ({ children }) => {
   }
 
   if (user?.role !== "admin") {
-    // Redirect non-admin users to user home page
+    // Redirect non-admin users to landing page
     return <Navigate to="/" replace />;
   }
 

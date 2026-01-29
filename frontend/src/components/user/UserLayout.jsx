@@ -1,4 +1,4 @@
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
   AppShell,
@@ -62,19 +62,21 @@ const UserLayout = ({ children }) => {
               hiddenFrom="sm"
               size="sm"
             />
-            <Flex align="center" gap="xs">
-              <ThemeIcon
-                size="xl"
-                radius="md"
-                variant="gradient"
-                gradient={{ from: "blue", to: "cyan" }}
-              >
-                <IconSparkles size={rem(24)} />
-              </ThemeIcon>
-              <Text size="lg" fw={800} c="blue">
-                POLLR
-              </Text>
-            </Flex>
+            <Link to="/" style={{ textDecoration: "none" }}>
+              <Flex align="center" gap="xs">
+                <ThemeIcon
+                  size="xl"
+                  radius="md"
+                  variant="gradient"
+                  gradient={{ from: "blue", to: "cyan" }}
+                >
+                  <IconSparkles size={rem(24)} />
+                </ThemeIcon>
+                <Text size="lg" fw={800} c="blue">
+                  POLLR
+                </Text>
+              </Flex>
+            </Link>
           </Group>
 
           <Menu shadow="md" width={200}>

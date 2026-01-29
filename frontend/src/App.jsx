@@ -11,9 +11,13 @@ import LoginPage from "./pages/auth/LoginPage";
 import ForgotPassword from "./pages/auth/ForgotPassword";
 import ProtectedRoute from "./components/user/ProtectedRoute";
 import AdminRoute from "./components/admin/AdminRoute";
+import AdminLayout from "./components/admin/AdminLayout";
 import "./App.css";
 import HomePage from "./pages/user/HomePage";
 import DashboardPage from "./pages/admin/DashboardPage";
+import UsersPage from "./pages/admin/UsersPage";
+import PollsPage from "./pages/admin/PollsPage";
+import SettingsPage from "./pages/admin/SettingsPage";
 import ProfilePage from "./pages/user/ProfilePage";
 import MyPollsPage from "./pages/user/MyPollsPage";
 import UserLayout from "./components/user/UserLayout";
@@ -44,6 +48,14 @@ function App() {
         <Outlet />
       </UserLayout>
     </ProtectedRoute>
+  );
+
+  const AdminRoutesWrapper = () => (
+    <AdminRoute>
+      <AdminLayout>
+        <Outlet />
+      </AdminLayout>
+    </AdminRoute>
   );
 
   // Create router with routes
@@ -106,15 +118,23 @@ function App() {
     // Admin routes
     {
       path: "/admin",
-      element: (
-        <AdminRoute>
-          <Outlet />
-        </AdminRoute>
-      ),
+      element: <AdminRoutesWrapper />,
       children: [
         {
           path: "dashboard",
           element: <DashboardPage />,
+        },
+        {
+          path: "users",
+          element: <UsersPage />,
+        },
+        {
+          path: "polls",
+          element: <PollsPage />,
+        },
+        {
+          path: "settings",
+          element: <SettingsPage />,
         },
       ],
     },

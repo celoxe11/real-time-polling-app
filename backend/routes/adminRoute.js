@@ -1,7 +1,13 @@
 const express = require("express");
 const router = express.Router();
 
-const { cleanUpUnverifiedUsers } = require("../controllers/adminController");
+const {
+  cleanUpUnverifiedUsers,
+  getAllUsers,
+  deleteUser,
+  getAllPolls,
+  deletePoll,
+} = require("../controllers/adminController");
 const { verifyFirebaseToken } = require("../middleware/authMiddleware");
 const { isAdmin } = require("../middleware/adminMiddleware");
 
@@ -11,5 +17,11 @@ router.delete(
   isAdmin,
   cleanUpUnverifiedUsers,
 );
+
+router.get("/users", verifyFirebaseToken, isAdmin, getAllUsers);
+router.delete("/users/:id", verifyFirebaseToken, isAdmin, deleteUser);
+
+router.get("/polls", verifyFirebaseToken, isAdmin, getAllPolls);
+router.delete("/polls/:id", verifyFirebaseToken, isAdmin, deletePoll);
 
 module.exports = router;

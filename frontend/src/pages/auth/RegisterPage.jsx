@@ -53,15 +53,19 @@ const RegisterPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  const { loading, error, isAuthenticated } = useSelector(
+  const { loading, error, isAuthenticated, user } = useSelector(
     (state) => state.auth,
   );
 
   useEffect(() => {
     if (isAuthenticated) {
-      navigate("/home");
+      if (user?.role === "admin") {
+        navigate("/admin/dashboard");
+      } else {
+        navigate("/home");
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, user]);
 
   const handleRegister = async (values) => {
     try {
@@ -74,7 +78,12 @@ const RegisterPage = () => {
         }),
       );
       if (result.type === "auth/registerWithEmail/fulfilled") {
-        navigate("/home");
+        const loggedInUser = result.payload;
+        if (loggedInUser?.role === "admin") {
+          navigate("/admin/dashboard");
+        } else {
+          navigate("/home");
+        }
       }
     } catch (error) {
       console.error("Registration error:", error);
