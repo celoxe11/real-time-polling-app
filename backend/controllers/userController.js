@@ -97,23 +97,6 @@ const getProfileStats = async (req, res) => {
   }
 };
 
-const editProfile = async (req, res) => {
-  try {
-    const userId = req.user.id;
-    const { name, photoURL } = req.body;
-    // Update user profile in Firebase Authentication
-    await admin.auth().updateUser(userId, {
-      displayName: name,
-      photoURL: photoURL,
-    });
-
-    return res.status(200).json({ message: "Profile updated successfully" });
-  } catch (error) {
-    console.log(error.message);
-    return res.status(500).json({ message: error.message });
-  }
-};
-
 /**
  * Check if user has voted in a specific poll
  * Uses two-layer verification: voterToken OR fingerprint
@@ -188,7 +171,6 @@ const getUserVotedPolls = async (req, res) => {
 module.exports = {
   getUserStats,
   getProfileStats,
-  editProfile,
   hasUserVotedPoll,
   getUserVotedPolls,
 };

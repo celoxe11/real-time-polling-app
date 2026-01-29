@@ -13,7 +13,6 @@ const {
 router.post("/stats", verifyFirebaseToken, getUserStats);
 
 router.get("/profile-stats", verifyFirebaseToken, getProfileStats);
-router.post("/edit-profile", verifyFirebaseToken, editProfile);
 
 // Check if user has voted in a specific poll (no auth required for anonymous users)
 router.post("/has-voted/:pollId", hasUserVotedPoll);

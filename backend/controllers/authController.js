@@ -4,43 +4,17 @@ const User = require("../models/User");
 // Verify dan simpan user ke database
 const verifyAndSaveUser = async (req, res) => {
   try {
-    const { uid, email, name, picture } = req.user;
-
-    // Cek apakah user sudah ada di database
-    let user = await User.findOne({ firebaseUid: uid });
-
-    if (!user) {
-      // Buat user baru jika belum ada
-      user = new User({
-        firebaseUid: uid,
-        email: email,
-        name: name,
-        photoURL: picture,
-      });
-      await user.save();
-    } else {
-      // Update info user jika sudah ada
-      user.name = name || user.name;
-      user.photoURL = picture || user.photoURL;
-      await user.save();
-    }
-
+    // User data is already synced and attached to req.user by verifyFirebaseToken middleware
     res.status(200).json({
       success: true,
       message: "User authenticated",
-      user: {
-        id: user._id,
-        firebaseUid: user.firebaseUid,
-        email: user.email,
-        name: user.name,
-        photoURL: user.photoURL,
-      },
+      user: req.user,
     });
   } catch (error) {
-    console.error("Error saving user:", error);
+    console.error("Error in verifyAndSaveUser:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to save user",
+      message: "Failed to return user data",
       error: error.message,
     });
   }
@@ -66,6 +40,7 @@ const getCurrentUser = async (req, res) => {
         email: user.email,
         name: user.name,
         photoURL: user.photoURL,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -103,8 +78,40 @@ const deleteUser = async (req, res) => {
   }
 };
 
+const editProfile = async (req, res) => {
+  try {
+    const uid = req.user.uid;
+    const { name, photoURL } = req.body;
+    // Update user profile in Firebase Authentication
+    await auth.updateUser(uid, {
+      displayName: name,
+      photoURL: photoURL,
+    });
+
+    // Get updated user
+    const updatedUser = await User.findOneAndUpdate(
+      { firebaseUid: uid },
+      { name: name, photoURL: photoURL },
+      { new: true },
+    );
+
+    return res.status(200).json({
+      id: updatedUser._id,
+      firebaseUid: updatedUser.firebaseUid,
+      email: updatedUser.email,
+      name: updatedUser.name,
+      photoURL: updatedUser.photoURL,
+      role: updatedUser.role,
+    });
+  } catch (error) {
+    console.log(error.message);
+    return res.status(500).json({ message: error.message });
+  }
+};
+
 module.exports = {
   verifyAndSaveUser,
   getCurrentUser,
   deleteUser,
+  editProfile,
 };

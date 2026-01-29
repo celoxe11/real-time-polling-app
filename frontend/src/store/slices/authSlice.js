@@ -6,6 +6,8 @@ import {
   signOut,
   updateProfile,
   sendPasswordResetEmail,
+  sendEmailVerification,
+  verifyBeforeUpdateEmail,
 } from "firebase/auth";
 import { auth, googleProvider } from "../../config/firebase";
 import { authService } from "../../services/authService";
@@ -24,6 +26,7 @@ export const loginWithGoogle = createAsyncThunk(
         id: backendUser.user.id,
         uid: result.user.uid,
         email: result.user.email,
+        emailVerified: result.user.emailVerified,
         displayName: result.user.displayName,
         photoURL: backendUser.user.photoURL || result.user.photoURL,
         role: backendUser.user.role,
@@ -55,6 +58,7 @@ export const loginWithEmail = createAsyncThunk(
         id: backendUser.user.id,
         uid: result.user.uid,
         email: result.user.email,
+        emailVerified: result.user.emailVerified,
         displayName: result.user.displayName,
         photoURL: backendUser.user.photoURL || result.user.photoURL,
         role: backendUser.user.role,
@@ -80,6 +84,9 @@ export const registerWithEmail = createAsyncThunk(
         await updateProfile(result.user, { displayName });
       }
 
+      // Send verification email
+      await sendEmailVerification(result.user);
+
       // Simpan user ke MongoDB backend dan dapatkan role
       const backendUser = await authService.verifyUser();
 
@@ -87,6 +94,7 @@ export const registerWithEmail = createAsyncThunk(
         id: backendUser.user.id,
         uid: result.user.uid,
         email: result.user.email,
+        emailVerified: result.user.emailVerified,
         displayName: displayName || result.user.displayName,
         photoURL: backendUser.user.photoURL || result.user.photoURL,
         role: backendUser.user.role,
@@ -109,12 +117,67 @@ export const logoutUser = createAsyncThunk(
   },
 );
 
+export const editProfile = createAsyncThunk(
+  "user/editProfile",
+  async (profileData, { rejectWithValue }) => {
+    try {
+      const response = await authService.editProfile(profileData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  },
+);
+
+export const deleteAccount = createAsyncThunk(
+  "auth/deleteAccount",
+  async (_, { rejectWithValue, dispatch }) => {
+    try {
+      await authService.deleteAccount();
+      dispatch(logoutUser());
+      return null;
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
 export const resetPassword = createAsyncThunk(
   "auth/resetPassword",
   async (email, { rejectWithValue }) => {
     try {
       await sendPasswordResetEmail(auth, email);
       return "Password reset email sent. Please check your inbox.";
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const sendVerificationEmail = createAsyncThunk(
+  "auth/sendVerificationEmail",
+  async (_, { rejectWithValue }) => {
+    try {
+      if (auth.currentUser) {
+        await sendEmailVerification(auth.currentUser);
+        return "Verification email sent. Please check your inbox.";
+      }
+      throw new Error("No user logged in");
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
+export const updateEmailAddress = createAsyncThunk(
+  "auth/updateEmailAddress",
+  async (newEmail, { rejectWithValue }) => {
+    try {
+      if (auth.currentUser) {
+        await verifyBeforeUpdateEmail(auth.currentUser, newEmail);
+        return "Verification email sent to new address. Email will be updated after verification.";
+      }
+      throw new Error("No user logged in");
     } catch (error) {
       return rejectWithValue(error.message);
     }
@@ -229,6 +292,55 @@ const authSlice = createSlice({
         state.error = null;
       })
       .addCase(resetPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.success = null;
+      });
+
+    builder
+      .addCase(editProfile.pending, (state) => {
+        state.loading = true;
+      })
+      .addCase(editProfile.fulfilled, (state, action) => {
+        state.loading = false;
+        state.user = action.payload;
+      })
+      .addCase(editProfile.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+      });
+
+    // Send Verification Email
+    builder
+      .addCase(sendVerificationEmail.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.success = null;
+      })
+      .addCase(sendVerificationEmail.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = action.payload;
+        state.error = null;
+      })
+      .addCase(sendVerificationEmail.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.success = null;
+      });
+
+    // Update Email Address
+    builder
+      .addCase(updateEmailAddress.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.success = null;
+      })
+      .addCase(updateEmailAddress.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = action.payload;
+        state.error = null;
+      })
+      .addCase(updateEmailAddress.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload;
         state.success = null;

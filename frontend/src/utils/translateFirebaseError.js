@@ -20,6 +20,12 @@ export const translateFirebaseError = (errorMessage) => {
       "Google login was cancelled because the window was closed.",
     "Firebase: Error (auth/user-not-found).":
       "No account found with this email address.",
+    "Firebase: Error (auth/too-many-requests).":
+      "Too many login attempts. Please try again later.",
+    "Firebase: Error (auth/network-request-failed).":
+      "Network connection failed. Please check your internet connection.",
+    "Firebase: Error (auth/popup-closed-by-user).":
+      "Google login was cancelled because the window was closed.",
   };
 
   return (

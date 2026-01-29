@@ -35,9 +35,18 @@ import {
   IconCamera,
 } from "@tabler/icons-react";
 import { authService } from "../../services/authService";
-import { logoutUser } from "../../store/slices/authSlice";
+import {
+  logoutUser,
+  editProfile,
+  updateEmailAddress,
+  sendVerificationEmail,
+} from "../../store/slices/authSlice";
 import { useEffect } from "react";
 import { getProfileStats } from "../../store/slices/userSlice";
+import ChangeProfileModal from "../../components/ChangeProfileModal";
+import DeleteAccountModal from "../../components/DeleteAccountModal";
+import { notifications } from "@mantine/notifications";
+import { IconCheck, IconAlertCircle } from "@tabler/icons-react";
 
 const ProfilePage = () => {
   const navigate = useNavigate();
@@ -86,11 +95,57 @@ const ProfilePage = () => {
 
   const handleUpdateProfile = async (values) => {
     try {
-      // TODO: Call API to update profile
-      console.log("Update profile:", values);
+      // Update display name if changed
+      if (values.displayName !== user.displayName) {
+        await dispatch(editProfile({ name: values.displayName })).unwrap();
+        notifications.show({
+          title: "Profile Updated",
+          message: "Your display name has been updated successfully",
+          color: "green",
+          icon: <IconCheck size={16} />,
+        });
+      }
+
+      // Update email if changed
+      if (values.email !== user.email) {
+        await dispatch(updateEmailAddress(values.email)).unwrap();
+        notifications.show({
+          title: "Verification Email Sent",
+          message:
+            "A verification email has been sent to your new address. Please verify it to complete the update.",
+          color: "blue",
+          icon: <IconCheck size={16} />,
+        });
+      }
+
       closeEdit();
     } catch (error) {
       console.error("Error updating profile:", error);
+      notifications.show({
+        title: "Update Failed",
+        message: error || "Failed to update profile",
+        color: "red",
+        icon: <IconAlertCircle size={16} />,
+      });
+    }
+  };
+
+  const handleResendVerification = async () => {
+    try {
+      await dispatch(sendVerificationEmail()).unwrap();
+      notifications.show({
+        title: "Verification Sent",
+        message: "A new verification email has been sent to your inbox.",
+        color: "green",
+        icon: <IconCheck size={16} />,
+      });
+    } catch (error) {
+      notifications.show({
+        title: "Error",
+        message: error || "Failed to send verification email",
+        color: "red",
+        icon: <IconAlertCircle size={16} />,
+      });
     }
   };
 
@@ -105,10 +160,7 @@ const ProfilePage = () => {
     }
   };
 
-  const handleChangeAvatar = () => {
-    // TODO: Implement avatar upload
-    console.log("Change avatar");
-  };
+  const handleChangeAvatar = () => {};
 
   return (
     <Container size="lg">
@@ -251,9 +303,26 @@ const ProfilePage = () => {
                       {user?.email}
                     </Text>
                   </div>
-                  <Badge color="green" variant="light">
-                    Verified
-                  </Badge>
+                  <Group gap="xs">
+                    {user?.emailVerified ? (
+                      <Badge color="green" variant="light">
+                        Verified
+                      </Badge>
+                    ) : (
+                      <>
+                        <Badge color="red" variant="light">
+                          Not Verified
+                        </Badge>
+                        <Button
+                          variant="subtle"
+                          size="compact-xs"
+                          onClick={handleResendVerification}
+                        >
+                          Resend
+                        </Button>
+                      </>
+                    )}
+                  </Group>
                 </Group>
 
                 <Divider />
@@ -300,58 +369,20 @@ const ProfilePage = () => {
         </Grid.Col>
       </Grid>
 
-      {/* Edit Profile Modal */}
-      <Modal
+      {/* Change Profile Modal */}
+      <ChangeProfileModal
         opened={editOpened}
-        onClose={closeEdit}
-        title="Edit Profile"
-        centered
-      >
-        <form onSubmit={form.onSubmit(handleUpdateProfile)}>
-          <Stack gap="md">
-            <TextInput
-              label="Display Name"
-              placeholder="Enter your name"
-              {...form.getInputProps("displayName")}
-            />
-            <TextInput
-              label="Email"
-              placeholder="your@email.com"
-              disabled
-              {...form.getInputProps("email")}
-            />
-            <Group justify="flex-end" mt="md">
-              <Button variant="subtle" onClick={closeEdit}>
-                Cancel
-              </Button>
-              <Button type="submit">Save Changes</Button>
-            </Group>
-          </Stack>
-        </form>
-      </Modal>
+        close={closeEdit}
+        form={form}
+        handleUpdateProfile={handleUpdateProfile}
+      />
 
       {/* Delete Account Confirmation Modal */}
-      <Modal
+      <DeleteAccountModal
         opened={deleteOpened}
-        onClose={closeDelete}
-        title="Delete Account"
-        centered
-      >
-        <Stack gap="md">
-          <Text size="sm">
-            Are you sure you want to delete your account? This action cannot be
-            undone and all your data will be permanently deleted.
-          </Text>
-          <Group justify="flex-end">
-            <Button variant="subtle" onClick={closeDelete}>
-              Cancel
-            </Button>
-            <Button color="red" onClick={handleDeleteAccount}>
-              Delete Account
-            </Button>
-          </Group>
-        </Stack>
-      </Modal>
+        close={closeDelete}
+        handleDeleteAccount={handleDeleteAccount}
+      />
     </Container>
   );
 };

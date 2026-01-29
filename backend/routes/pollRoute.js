@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   verifyFirebaseToken,
   optionalAuth,
+  ensureEmailVerified,
 } = require("../middleware/authMiddleware");
 
 const {
@@ -28,9 +29,9 @@ router.get("/popular", optionalAuth, getPopularPolls);
 router.get("/search", optionalAuth, searchPolls);
 router.get("/room/:roomCode", optionalAuth, getPollByRoomCode);
 router.get("/:id", optionalAuth, getPollById);
-router.post("/", verifyFirebaseToken, createPoll);
-router.put("/:id", verifyFirebaseToken, updatePoll);
-router.delete("/:id", verifyFirebaseToken, deletePoll);
+router.post("/", verifyFirebaseToken, ensureEmailVerified, createPoll);
+router.put("/:id", verifyFirebaseToken, ensureEmailVerified, updatePoll);
+router.delete("/:id", verifyFirebaseToken, ensureEmailVerified, deletePoll);
 router.post("/:id/vote", optionalAuth, votePoll);
 
 module.exports = router;

@@ -23,7 +23,10 @@ import {
   IconEye,
   IconUsers,
   IconChartBar,
+  IconCheck,
+  IconAlertCircle,
 } from "@tabler/icons-react";
+import { notifications } from "@mantine/notifications";
 import { useDispatch, useSelector } from "react-redux";
 import { getMyPolls } from "../../store/slices/pollSlice";
 import { deletePoll } from "../../store/slices/pollSlice";
@@ -34,7 +37,7 @@ const MyPollsPage = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const { myPolls, activePolls, closedPolls } = useSelector(
-    (state) => state.poll
+    (state) => state.poll,
   );
 
   useEffect(() => {
@@ -53,9 +56,24 @@ const MyPollsPage = () => {
     navigate(`/poll/${pollId}/edit`);
   };
 
-  const handleDeletePoll = (pollId) => {
+  const handleDeletePoll = async (pollId) => {
     if (window.confirm("Are you sure you want to delete this poll?")) {
-      dispatch(deletePoll(pollId));
+      try {
+        await dispatch(deletePoll(pollId)).unwrap();
+        notifications.show({
+          title: "Poll Deleted",
+          message: "The poll has been deleted successfully",
+          color: "green",
+          icon: <IconCheck size={16} />,
+        });
+      } catch (error) {
+        notifications.show({
+          title: "Delete Failed",
+          message: typeof error === "string" ? error : "Failed to delete poll",
+          color: "red",
+          icon: <IconAlertCircle size={16} />,
+        });
+      }
     }
   };
 

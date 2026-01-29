@@ -17,14 +17,6 @@ export const getProfileStats = createAsyncThunk(
   },
 );
 
-export const editProfile = createAsyncThunk(
-  "user/editProfile",
-  async (profileData) => {
-    const response = await userService.editProfile(profileData);
-    return response; // userService already returns response.data
-  },
-);
-
 export const hasUserVotedPoll = createAsyncThunk(
   "user/hasUserVotedPoll",
   async ({ userId, pollId }) => {
@@ -83,18 +75,6 @@ const userSlice = createSlice({
         state.activePolls = action.payload.activePolls;
       })
       .addCase(getProfileStats.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.error.message;
-      });
-
-    builder
-      .addCase(editProfile.pending, (state) => {
-        state.loading = true;
-      })
-      .addCase(editProfile.fulfilled, (state, action) => {
-        state.loading = false;
-      })
-      .addCase(editProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.error.message;
       });

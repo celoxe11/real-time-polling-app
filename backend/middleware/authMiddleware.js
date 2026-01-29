@@ -37,20 +37,19 @@ const verifyFirebaseToken = async (req, res, next) => {
       sanitizeName(decodedToken.name) || decodedToken.email.split("@")[0];
 
     // Use atomic upsert to prevent race conditions
-    // This ensures only one user is created even with concurrent requests
     let user = await User.findOneAndUpdate(
       { firebaseUid: decodedToken.uid },
       {
-        $setOnInsert: {
-          firebaseUid: decodedToken.uid,
-          email: decodedToken.email,
-          name: userName,
-          photoURL: decodedToken.picture || null,
-          role: "user",
-          createdAt: new Date(),
-        },
         $set: {
           lastLogin: new Date(),
+          email: decodedToken.email,
+          name: decodedToken.name || userName,
+          photoURL: decodedToken.picture || null,
+        },
+        $setOnInsert: {
+          firebaseUid: decodedToken.uid,
+          role: "user",
+          createdAt: new Date(),
         },
       },
       {
@@ -128,7 +127,20 @@ const optionalAuth = async (req, res, next) => {
   }
 };
 
+const ensureEmailVerified = (req, res, next) => {
+  // We check req.user because your previous middleware already attached it
+  if (!req.user || !req.user.emailVerified) {
+    return res.status(403).json({
+      success: false,
+      message:
+        "Your email is not verified. Please verify your email to access this feature.",
+    });
+  }
+  next();
+};
+
 module.exports = {
   verifyFirebaseToken,
   optionalAuth,
+  ensureEmailVerified,
 };

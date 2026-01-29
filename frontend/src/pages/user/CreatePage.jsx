@@ -114,8 +114,8 @@ const CreatePage = () => {
   const handleOptionChange = (id, value) => {
     setOptions(
       options.map((option) =>
-        option.id === id ? { ...option, value } : option
-      )
+        option.id === id ? { ...option, value } : option,
+      ),
     );
   };
 
@@ -164,7 +164,7 @@ const CreatePage = () => {
 
       // Check if the action was rejected
       if (result.type === "poll/createPoll/rejected") {
-        throw new Error(result.error?.message || "Failed to create poll");
+        throw new Error(result.payload || "Failed to create poll");
       }
 
       // Show success notification

@@ -1,4 +1,3 @@
-import logo from "../assets/logo.png";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -24,7 +23,7 @@ import {
   IconChartBar,
   IconSparkles,
 } from "@tabler/icons-react";
-import { logoutUser } from "../store/slices/authSlice";
+import { logoutUser } from "../../store/slices/authSlice";
 
 const UserLayout = ({ children }) => {
   const [opened, { toggle }] = useDisclosure();

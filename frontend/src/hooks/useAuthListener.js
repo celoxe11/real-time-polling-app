@@ -13,17 +13,23 @@ export const useAuthListener = () => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
         try {
-          // Fetch additional user data from backend (including MongoDB id and role)
-          const backendUser = await authService.verifyUser();
+          // Reload user to get latest info (like emailVerified status)
+          await user.reload();
+          const refreshedUser = auth.currentUser;
 
+          // Fetch additional user data from backend
+          const backendUser = await authService.verifyUser();
+          
           // User is signed in
           dispatch(
             setUser({
               id: backendUser.user.id,
-              uid: user.uid,
-              email: user.email,
-              displayName: backendUser.user.name || user.displayName,
-              photoURL: backendUser.user.photoURL || user.photoURL,
+              uid: refreshedUser.uid,
+              email: refreshedUser.email,
+              emailVerified:
+                backendUser.user.emailVerified || refreshedUser.emailVerified,
+              displayName: backendUser.user.name || refreshedUser.displayName,
+              photoURL: backendUser.user.photoURL || refreshedUser.photoURL,
               role: backendUser.user.role,
             }),
           );
@@ -34,6 +40,7 @@ export const useAuthListener = () => {
             setUser({
               uid: user.uid,
               email: user.email,
+              emailVerified: user.emailVerified,
               displayName: user.displayName,
               photoURL: user.photoURL,
             }),

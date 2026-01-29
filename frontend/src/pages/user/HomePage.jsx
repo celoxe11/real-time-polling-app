@@ -51,6 +51,7 @@ const HomePage = () => {
   const [joining, setJoining] = useState(false);
   const [userStats, setUserStats] = useState([]);
 
+  const { user } = useSelector((state) => state.auth);
   const { trending, recent, popular, polls } = useSelector(
     (state) => state.poll,
   );
@@ -150,6 +151,29 @@ const HomePage = () => {
 
   return (
     <Container size="xl">
+      {user && !user.emailVerified && (
+        <Alert
+          icon={<IconAlertCircle size={16} />}
+          title="Email Not Verified"
+          color="orange"
+          variant="light"
+          mb="xl"
+        >
+          <Group justify="space-between">
+            <Text size="sm">
+              Please verify your email address to access all features.
+            </Text>
+            <Button
+              size="compact-xs"
+              variant="subtle"
+              onClick={() => navigate("/profile")}
+            >
+              Verify Now
+            </Button>
+          </Group>
+        </Alert>
+      )}
+
       {/* Hero Section */}
       <Box mb="xl">
         <Group justify="space-between" align="flex-start" mb="md">

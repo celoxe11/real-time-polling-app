@@ -2,45 +2,75 @@ import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import { pollService } from "../../services/pollService";
 
 // async thunks
-export const getPolls = createAsyncThunk("poll/getPolls", async () => {
-  const response = await pollService.getPolls();
-  return response; // pollService already returns response.data
-});
+export const getPolls = createAsyncThunk(
+  "poll/getPolls",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await pollService.getPolls();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  },
+);
 
-export const getMyPolls = createAsyncThunk("poll/getMyPolls", async () => {
-  const response = await pollService.getMyPolls();
-  return response; // pollService already returns response.data
-});
+export const getMyPolls = createAsyncThunk(
+  "poll/getMyPolls",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await pollService.getMyPolls();
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
+  },
+);
 
 export const getPollById = createAsyncThunk(
   "poll/getPollById",
-  async (pollId) => {
-    const response = await pollService.getPollById(pollId);
-    return response; // pollService already returns response.data
+  async (pollId, { rejectWithValue }) => {
+    try {
+      const response = await pollService.getPollById(pollId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
   },
 );
 
 export const createPoll = createAsyncThunk(
   "poll/createPoll",
-  async (pollData) => {
-    const response = await pollService.createPoll(pollData);
-    return response; // pollService already returns response.data
+  async (pollData, { rejectWithValue }) => {
+    try {
+      const response = await pollService.createPoll(pollData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
   },
 );
 
 export const updatePoll = createAsyncThunk(
   "poll/updatePoll",
-  async ({ id, pollData }) => {
-    const response = await pollService.updatePoll(id, pollData);
-    return response; // pollService already returns response.data
+  async ({ id, pollData }, { rejectWithValue }) => {
+    try {
+      const response = await pollService.updatePoll(id, pollData);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
   },
 );
 
 export const deletePoll = createAsyncThunk(
   "poll/deletePoll",
-  async (pollId) => {
-    const response = await pollService.deletePoll(pollId);
-    return response; // pollService already returns response.data
+  async (pollId, { rejectWithValue }) => {
+    try {
+      const response = await pollService.deletePoll(pollId);
+      return response;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || error.message);
+    }
   },
 );
 
@@ -199,7 +229,7 @@ const pollSlice = createSlice({
       })
       .addCase(createPoll.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
 
     // update poll
@@ -221,7 +251,7 @@ const pollSlice = createSlice({
       })
       .addCase(updatePoll.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
 
     // delete poll
@@ -243,7 +273,7 @@ const pollSlice = createSlice({
       })
       .addCase(deletePoll.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
 
     builder
@@ -256,7 +286,7 @@ const pollSlice = createSlice({
       })
       .addCase(getTrendingPolls.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
 
     builder
@@ -269,7 +299,7 @@ const pollSlice = createSlice({
       })
       .addCase(getRecentPolls.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
 
     builder
@@ -282,7 +312,7 @@ const pollSlice = createSlice({
       })
       .addCase(getPopularPolls.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
 
     builder
@@ -295,7 +325,7 @@ const pollSlice = createSlice({
       })
       .addCase(getPollByRoomCode.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.error.message;
+        state.error = action.payload || action.error.message;
       });
   },
 });

@@ -31,6 +31,9 @@ app.use("/api/poll", pollRoute);
 const userRoute = require("./routes/userRoute");
 app.use("/api/user", userRoute);
 
+const adminRoute = require("./routes/adminRoute");
+app.use("/api/admin", adminRoute);
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: {

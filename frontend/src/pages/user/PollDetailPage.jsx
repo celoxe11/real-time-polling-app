@@ -215,8 +215,12 @@ const PollDetailPage = () => {
       });
     } catch (error) {
       console.error("Error voting:", error);
-      if (error.response?.status === 403) {
-        // User has already voted
+      // Since we use .unwrap(), error is the rejectWithValue payload (the message)
+      if (
+        error &&
+        typeof error === "string" &&
+        error.includes("already voted")
+      ) {
         setHasVoted(true);
         notifications.show({
           title: "Vote Already Submitted",
@@ -227,7 +231,10 @@ const PollDetailPage = () => {
       } else {
         notifications.show({
           title: "Vote Failed",
-          message: "Failed to submit vote. Please try again.",
+          message:
+            typeof error === "string"
+              ? error
+              : "Failed to submit vote. Please try again.",
           color: "red",
           icon: <IconAlertCircle />,
         });

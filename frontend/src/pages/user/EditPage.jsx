@@ -109,7 +109,7 @@ const EditPage = () => {
           poll.options.map((opt, index) => ({
             id: index + 1,
             value: opt.optionText || "",
-          }))
+          })),
         );
       }
     }
@@ -145,8 +145,8 @@ const EditPage = () => {
   const handleOptionChange = (id, value) => {
     setOptions(
       options.map((option) =>
-        option.id === id ? { ...option, value } : option
-      )
+        option.id === id ? { ...option, value } : option,
+      ),
     );
   };
 
@@ -195,7 +195,7 @@ const EditPage = () => {
 
       // Check if the action was rejected
       if (result.type === "poll/updatePoll/rejected") {
-        throw new Error(result.error?.message || "Failed to update poll");
+        throw new Error(result.payload || "Failed to update poll");
       }
 
       // Show success notification
