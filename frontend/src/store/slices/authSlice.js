@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signOut,
   updateProfile,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { auth, googleProvider } from "../../config/firebase";
 import { authService } from "../../services/authService";
@@ -108,11 +109,24 @@ export const logoutUser = createAsyncThunk(
   },
 );
 
+export const resetPassword = createAsyncThunk(
+  "auth/resetPassword",
+  async (email, { rejectWithValue }) => {
+    try {
+      await sendPasswordResetEmail(auth, email);
+      return "Password reset email sent. Please check your inbox.";
+    } catch (error) {
+      return rejectWithValue(error.message);
+    }
+  },
+);
+
 // Initial State
 const initialState = {
   user: null,
   loading: false,
   error: null,
+  success: null,
   isAuthenticated: false,
 };
 
@@ -128,6 +142,9 @@ const authSlice = createSlice({
     },
     clearError: (state) => {
       state.error = null;
+    },
+    clearSuccess: (state) => {
+      state.success = null;
     },
   },
   extraReducers: (builder) => {
@@ -198,8 +215,26 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
       });
+
+    // Reset Password
+    builder
+      .addCase(resetPassword.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.success = null;
+      })
+      .addCase(resetPassword.fulfilled, (state, action) => {
+        state.loading = false;
+        state.success = action.payload;
+        state.error = null;
+      })
+      .addCase(resetPassword.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload;
+        state.success = null;
+      });
   },
 });
 
-export const { setUser, clearError } = authSlice.actions;
+export const { setUser, clearError, clearSuccess } = authSlice.actions;
 export default authSlice.reducer;

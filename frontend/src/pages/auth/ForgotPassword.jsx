@@ -1,7 +1,11 @@
 import { useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { registerWithEmail, clearError } from "../store/slices/authSlice";
+import {
+  resetPassword,
+  clearError,
+  clearSuccess,
+} from "../../store/slices/authSlice";
 import {
   Alert,
   Button,
@@ -9,38 +13,39 @@ import {
   Title,
   Stack,
   Text,
-  PasswordInput,
   Anchor,
   Box,
-  Grid,
-  rem,
   Flex,
   ThemeIcon,
-  Divider,
+  rem,
+  Grid,
 } from "@mantine/core";
 import { useForm } from "@mantine/form";
 import {
   IconAlertCircle,
   IconSparkles,
-  IconUserPlus,
-  IconMail,
-  IconLock,
   IconArrowLeft,
+  IconFingerprint,
+  IconCheck,
 } from "@tabler/icons-react";
-import { registerSchema } from "../utils/validation/authValidation";
-import { translateFirebaseError } from "../utils/translateFirebaseError";
+import { forgotPasswordSchema } from "../../utils/validation/authValidation";
+import { translateFirebaseError } from "../../utils/translateFirebaseError";
 
-const RegisterPage = () => {
+const ForgotPassword = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const { loading, error, success } = useSelector((state) => state.auth);
+
   const form = useForm({
     mode: "uncontrolled",
     initialValues: {
-      name: "",
       email: "",
-      password: "",
-      confirmPassword: "",
     },
     validate: (values) => {
-      const { error } = registerSchema.validate(values, { abortEarly: false });
+      const { error } = forgotPasswordSchema.validate(values, {
+        abortEarly: false,
+      });
       if (!error) return {};
       const errors = {};
       error.details.forEach((detail) => {
@@ -50,46 +55,37 @@ const RegisterPage = () => {
     },
   });
 
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-
-  const { loading, error, isAuthenticated } = useSelector(
-    (state) => state.auth,
-  );
-
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate("/home");
-    }
-  }, [isAuthenticated, navigate]);
-
-  const handleRegister = async (values) => {
-    try {
+    // Clear state on mount and unmount
+    dispatch(clearError());
+    dispatch(clearSuccess());
+    return () => {
       dispatch(clearError());
-      const result = await dispatch(
-        registerWithEmail({
-          email: values.email,
-          password: values.password,
-          displayName: values.name,
-        }),
-      );
-      if (result.type === "auth/registerWithEmail/fulfilled") {
-        navigate("/home");
-      }
-    } catch (error) {
-      console.error("Registration error:", error);
-    }
+      dispatch(clearSuccess());
+    };
+  }, [dispatch]);
+
+  const handleSubmit = async (values) => {
+    dispatch(resetPassword(values.email));
   };
 
   return (
-    <Box style={{ height: "100vh", overflow: "auto" }}>
+    <Box
+      style={{ height: "100vh", overflow: "auto" }}
+      className="main-container"
+    >
       <Grid
         gutter={0}
         style={{ height: "100vh" }}
         styles={{ inner: { height: "100%" } }}
+        className="main-grid"
       >
         {/* Left Side: Brand & Visuals */}
-        <Grid.Col span={{ base: 0, md: 5, lg: 4 }} visibleFrom="md">
+        <Grid.Col
+          span={{ base: 0, md: 5, lg: 4 }}
+          visibleFrom="md"
+          className="main-left"
+        >
           <Box
             style={{
               height: "100%",
@@ -105,12 +101,12 @@ const RegisterPage = () => {
             <Box
               style={{
                 position: "absolute",
-                top: "20%",
-                right: "-5%",
-                width: "250px",
-                height: "250px",
-                background: "rgba(255,255,255,0.15)",
-                filter: "blur(70px)",
+                top: "10%",
+                left: "-10%",
+                width: "300px",
+                height: "300px",
+                background: "rgba(255,255,255,0.1)",
+                filter: "blur(80px)",
                 borderRadius: "50%",
               }}
             />
@@ -139,7 +135,7 @@ const RegisterPage = () => {
                     fontWeight: 900,
                   }}
                 >
-                  Join the <br /> Future of <br /> Feedback.
+                  Regain <br /> Access to your <br /> Account.
                 </Title>
                 <Text
                   mt="xl"
@@ -149,15 +145,14 @@ const RegisterPage = () => {
                     maxWidth: "300px",
                   }}
                 >
-                  Create your account and start capturing real-time insights
-                  today.
+                  We'll help you get back to making decisions that matter.
                 </Text>
               </Box>
             </Stack>
 
             <Box>
               <Text size="sm" style={{ color: "rgba(255,255,255,0.6)" }}>
-                Professional polling simplified.
+                © 2026 POLLR Platform.
               </Text>
             </Box>
           </Box>
@@ -198,73 +193,65 @@ const RegisterPage = () => {
                   color="gray"
                   leftSection={<IconArrowLeft size={16} />}
                   component={Link}
-                  to="/"
+                  to="/login"
                   style={{ width: "fit-content", padding: 0 }}
                 >
-                  Back to Home
+                  Back to Login
                 </Button>
                 <Title fw={900} style={{ fontSize: rem(32), color: "white" }}>
-                  Join POLLR
+                  Forgot Password
                 </Title>
                 <Text c="dimmed" size="sm">
-                  Create your free account and start polling
+                  Enter your email address and we'll send you a link to reset
+                  your password
                 </Text>
               </Stack>
 
               {error && (
                 <Alert
                   icon={<IconAlertCircle size={16} />}
-                  title="Registration Failed"
+                  title="Error"
                   color="red"
                   variant="light"
                   mb="xl"
                   onClose={() => dispatch(clearError())}
                   withCloseButton
+                  styles={{
+                    message: { color: "white" },
+                  }}
                 >
                   {translateFirebaseError(error)}
                 </Alert>
               )}
 
-              <form onSubmit={form.onSubmit(handleRegister)}>
-                <Stack gap="lg">
-                  <TextInput
-                    label="Full Name"
-                    labelProps={{ style: { color: "white" } }}
-                    placeholder="Enter your full name"
-                    size="md"
-                    radius="md"
-                    leftSection={<IconUserPlus size={18} stroke={1.5} />}
-                    {...form.getInputProps("name")}
-                  />
+              {success && (
+                <Alert
+                  icon={<IconCheck size={16} />}
+                  title="Success"
+                  color="teal"
+                  variant="light"
+                  mb="xl"
+                  onClose={() => dispatch(clearSuccess())}
+                  withCloseButton
+                  styles={{
+                    message: { color: "white" },
+                  }}
+                >
+                  {success}
+                </Alert>
+              )}
 
+              <form onSubmit={form.onSubmit(handleSubmit)}>
+                <Stack gap="lg">
                   <TextInput
                     label="Email Address"
                     labelProps={{ style: { color: "white" } }}
                     placeholder="your@email.com"
                     size="md"
                     radius="md"
-                    leftSection={<IconMail size={18} stroke={1.5} />}
+                    leftSection={<IconFingerprint size={18} stroke={1.5} />}
                     {...form.getInputProps("email")}
-                  />
-
-                  <PasswordInput
-                    label="Password"
-                    labelProps={{ style: { color: "white" } }}
-                    placeholder="Create a secure password"
-                    size="md"
-                    radius="md"
-                    leftSection={<IconLock size={18} stroke={1.5} />}
-                    {...form.getInputProps("password")}
-                  />
-
-                  <PasswordInput
-                    label="Confirm Password"
-                    labelProps={{ style: { color: "white" } }}
-                    placeholder="Repeat your password"
-                    size="md"
-                    radius="md"
-                    leftSection={<IconLock size={18} stroke={1.5} />}
-                    {...form.getInputProps("confirmPassword")}
+                    disabled={!!success}
                   />
 
                   <Button
@@ -275,27 +262,19 @@ const RegisterPage = () => {
                     loading={loading}
                     variant="gradient"
                     gradient={{ from: "blue", to: "cyan" }}
-                    mt="md"
+                    disabled={!!success}
                   >
-                    Create Account
+                    Send Reset Link
                   </Button>
                 </Stack>
               </form>
 
               <Text ta="center" mt={40} size="sm" c="dimmed">
-                Already have an account?{" "}
+                Remember your password?{" "}
                 <Anchor fw={700} component={Link} to="/login">
                   Sign In
                 </Anchor>
               </Text>
-
-              <Box mt={40}>
-                <Divider label="Security" labelPosition="center" mb="lg" />
-                <Text size="xs" c="dimmed" ta="center">
-                  By creating an account, you agree to our Terms of Service and
-                  Privacy Policy. Your data is encrypted and secure.
-                </Text>
-              </Box>
             </Box>
           </Box>
         </Grid.Col>
@@ -304,4 +283,4 @@ const RegisterPage = () => {
   );
 };
 
-export default RegisterPage;
+export default ForgotPassword;

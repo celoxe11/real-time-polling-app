@@ -6,7 +6,8 @@ export const translateFirebaseError = (errorMessage) => {
     errorMessage.match(/\((auth\/[^)]+)\)/)?.[1] || errorMessage;
 
   const errorMessages = {
-    "auth/invalid-credential": "The email or password you entered is incorrect.",
+    "auth/invalid-credential":
+      "The email or password you entered is incorrect.",
     "auth/user-not-found": "No account found with this email address.",
     "auth/wrong-password": "The password you entered is incorrect.",
     "auth/invalid-email": "The email address format is invalid.",
@@ -17,6 +18,8 @@ export const translateFirebaseError = (errorMessage) => {
       "Network connection failed. Please check your internet connection.",
     "auth/popup-closed-by-user":
       "Google login was cancelled because the window was closed.",
+    "Firebase: Error (auth/user-not-found).":
+      "No account found with this email address.",
   };
 
   return (

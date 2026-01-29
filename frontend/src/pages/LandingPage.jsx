@@ -16,6 +16,7 @@ import {
   Skeleton,
   Flex,
   Avatar,
+  TextInput,
 } from "@mantine/core";
 import {
   IconSparkles,
@@ -230,7 +231,7 @@ const LandingPage = () => {
                   <AvatarGroup users={["", "", "", ""]} />
                   <Text size="sm" c="dimmed">
                     Joined by{" "}
-                    <span style={{ color: "white", fontWeight: 600 }}>
+                    <span style={{ color: "grey", fontWeight: 600 }}>
                       10,000+
                     </span>{" "}
                     voters this week
@@ -460,7 +461,7 @@ const LandingPage = () => {
                 and communities.
               </Text>
             </Grid.Col>
-            <Grid.Col span={{ base: 6, md: 2 }}>
+            <Grid.Col span={{ base: 6, md: 4 }}>
               <Text fw={700} mb="lg">
                 Product
               </Text>
@@ -476,7 +477,7 @@ const LandingPage = () => {
                 </Text>
               </Stack>
             </Grid.Col>
-            <Grid.Col span={{ base: 6, md: 2 }}>
+            <Grid.Col span={{ base: 6, md: 4 }}>
               <Text fw={700} mb="lg">
                 Resources
               </Text>
@@ -491,28 +492,6 @@ const LandingPage = () => {
                   API
                 </Text>
               </Stack>
-            </Grid.Col>
-            <Grid.Col span={{ base: 12, md: 4 }}>
-              <Text fw={700} mb="lg">
-                Subscribe to our newsletter
-              </Text>
-              <Group>
-                <input
-                  type="email"
-                  placeholder="your@email.com"
-                  style={{
-                    flex: 1,
-                    padding: "10px 15px",
-                    borderRadius: "8px",
-                    border: "1px solid rgba(255,255,255,0.1)",
-                    background: "rgba(255,255,255,0.05)",
-                    color: "white",
-                  }}
-                />
-                <Button variant="outline" color="blue">
-                  Go
-                </Button>
-              </Group>
             </Grid.Col>
           </Grid>
           <Box

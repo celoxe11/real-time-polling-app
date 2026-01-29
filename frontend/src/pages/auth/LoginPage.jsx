@@ -5,7 +5,7 @@ import {
   loginWithGoogle,
   loginWithEmail,
   clearError,
-} from "../store/slices/authSlice";
+} from "../../store/slices/authSlice";
 import {
   Alert,
   Button,
@@ -32,8 +32,8 @@ import {
   IconFingerprint,
   IconLock,
 } from "@tabler/icons-react";
-import { loginSchema } from "../utils/validation/authValidation";
-import { translateFirebaseError } from "../utils/translateFirebaseError";
+import { loginSchema } from "../../utils/validation/authValidation";
+import { translateFirebaseError } from "../../utils/translateFirebaseError";
 
 const LoginPage = () => {
   const [localLoading, setLocalLoading] = useState(false);
@@ -254,6 +254,9 @@ const LoginPage = () => {
                   mb="xl"
                   onClose={() => dispatch(clearError())}
                   withCloseButton
+                  styles={{
+                    message: { color: "white" },
+                  }}
                 >
                   {translateFirebaseError(error)}
                 </Alert>

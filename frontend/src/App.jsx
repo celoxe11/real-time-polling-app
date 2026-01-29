@@ -6,8 +6,9 @@ import {
   Outlet,
 } from "react-router-dom";
 import { useAuthListener } from "./hooks/useAuthListener";
-import RegisterPage from "./pages/RegisterPage";
-import LoginPage from "./pages/LoginPage";
+import RegisterPage from "./pages/auth/RegisterPage";
+import LoginPage from "./pages/auth/LoginPage";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminRoute from "./components/AdminRoute";
 import "./App.css";
@@ -58,6 +59,10 @@ function App() {
     {
       path: "/register",
       element: isAuthenticated ? <RoleBasedRedirect /> : <RegisterPage />,
+    },
+    {
+      path: "/forgot-password",
+      element: isAuthenticated ? <RoleBasedRedirect /> : <ForgotPassword />,
     },
     // User routes (top-level)
     {
