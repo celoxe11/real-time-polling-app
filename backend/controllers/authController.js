@@ -1,20 +1,86 @@
 const { auth } = require("../config/firebase");
 const User = require("../models/User");
 
-// Verify dan simpan user ke database
+// Helper function untuk sanitize name
+const sanitizeName = (name) => {
+  if (!name) return null;
+  return name.replace(/[<>]/g, "").trim().substring(0, 100);
+};
+
+// Verify dan simpan user ke database (dipanggil saat login/register)
 const verifyAndSaveUser = async (req, res) => {
   try {
-    // User data is already synced and attached to req.user by verifyFirebaseToken middleware
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "No token provided",
+      });
+    }
+
+    const idToken = authHeader.split("Bearer ")[1];
+    const decodedToken = await auth.verifyIdToken(idToken);
+
+    // Validate email
+    if (!decodedToken.email || !decodedToken.email.includes("@")) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid email address",
+      });
+    }
+
+    const userName =
+      sanitizeName(decodedToken.name) || decodedToken.email.split("@")[0];
+
+    // Atomic upsert - hanya dipanggil saat login/register
+    const user = await User.findOneAndUpdate(
+      { firebaseUid: decodedToken.uid },
+      {
+        $set: {
+          lastLogin: new Date(),
+          email: decodedToken.email,
+          name: decodedToken.name || userName,
+          photoURL: decodedToken.picture || null,
+        },
+        $setOnInsert: {
+          firebaseUid: decodedToken.uid,
+          role: "user",
+          createdAt: new Date(),
+        },
+      },
+      {
+        upsert: true,
+        new: true,
+        setDefaultsOnInsert: true,
+        runValidators: true,
+      },
+    );
+
+    if (!user) {
+      return res.status(500).json({
+        success: false,
+        message: "Failed to create or retrieve user account",
+      });
+    }
+
     res.status(200).json({
       success: true,
-      message: "User authenticated",
-      user: req.user,
+      message: "User authenticated and synced",
+      user: {
+        id: user._id.toString(),
+        firebaseUid: user.firebaseUid,
+        email: user.email,
+        name: user.name,
+        photoURL: user.photoURL,
+        role: user.role,
+      },
     });
   } catch (error) {
     console.error("Error in verifyAndSaveUser:", error);
     res.status(500).json({
       success: false,
-      message: "Failed to return user data",
+      message: "Failed to sync user data",
       error: error.message,
     });
   }

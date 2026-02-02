@@ -27,43 +27,14 @@ const verifyFirebaseToken = async (req, res, next) => {
       });
     }
 
-    // Sanitize name input
-    const sanitizeName = (name) => {
-      if (!name) return null;
-      return name.replace(/[<>]/g, "").trim().substring(0, 100);
-    };
-
-    const userName =
-      sanitizeName(decodedToken.name) || decodedToken.email.split("@")[0];
-
-    // Use atomic upsert to prevent race conditions
-    let user = await User.findOneAndUpdate(
-      { firebaseUid: decodedToken.uid },
-      {
-        $set: {
-          lastLogin: new Date(),
-          email: decodedToken.email,
-          name: decodedToken.name || userName,
-          photoURL: decodedToken.picture || null,
-        },
-        $setOnInsert: {
-          firebaseUid: decodedToken.uid,
-          role: "user",
-          createdAt: new Date(),
-        },
-      },
-      {
-        upsert: true,
-        new: true,
-        setDefaultsOnInsert: true,
-        runValidators: true,
-      },
-    );
+    // Find user in database (no upsert here to avoid overhead)
+    const user = await User.findOne({ firebaseUid: decodedToken.uid });
 
     if (!user) {
-      return res.status(500).json({
+      return res.status(404).json({
         success: false,
-        message: "Failed to create or retrieve user account",
+        message: "User not found. Please complete registration first.",
+        code: "USER_NOT_FOUND",
       });
     }
 
